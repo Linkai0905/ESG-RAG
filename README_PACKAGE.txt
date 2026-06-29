@@ -1,1 +1,1 @@
-请优先阅读 README.md。该包是 ESG RAG Demo 的面试展示版，examples/ 中包含一次生成案例。
+请优先阅读 README.md。该包包含 ESG RAG 月报生成系统的核心代码、资料样例和一次完整运行后的输出文件。
