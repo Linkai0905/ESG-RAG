@@ -1,0 +1,61 @@
+{
+  "period_start": "2026-05-29",
+  "period_end": "2026-06-29",
+  "collection_name": "esg__20260529_20260629_BAAI_bge-m3_1024",
+  "company": "中国神华",
+  "peer_count": 6,
+  "search_task_count": 4,
+  "url_candidate_count": 17,
+  "unique_url_count": 17,
+  "url_queue_count": 17,
+  "duplicate_url_count": 0,
+  "pinned_count": 3,
+  "section_counts_in_candidates": {
+    "company": 8,
+    "industry": 3,
+    "peer": 2,
+    "policy": 4
+  },
+  "section_counts_in_queue": {
+    "company": 8,
+    "policy": 4,
+    "industry": 3,
+    "peer": 2
+  },
+  "merge_urls": {
+    "url_candidate_count": 17,
+    "unique_url_count": 17,
+    "url_queue_count": 17,
+    "duplicate_url_count": 0,
+    "pinned_count": 3,
+    "section_counts_in_candidates": {
+      "company": 8,
+      "industry": 3,
+      "peer": 2,
+      "policy": 4
+    },
+    "section_counts_in_queue": {
+      "company": 8,
+      "policy": 4,
+      "industry": 3,
+      "peer": 2
+    }
+  },
+  "fetch_success_count": 16,
+  "fetch_failed_count": 1,
+  "parsed_doc_count": 16,
+  "parsed_success_count": 16,
+  "discovered_pdf_count": 0,
+  "chunk_count": 67,
+  "evidence_count": 30,
+  "evidence_section_counts": {
+    "policy": 8,
+    "industry": 8,
+    "company": 8,
+    "peer": 6
+  },
+  "impact_assessment_count": 7,
+  "impact_assessment_fallback": false,
+  "report_fallback": false,
+  "report_length": 6605
+}
