@@ -27,14 +27,16 @@ python main.py --company 中国神华 --anchor-date 2026-06-29 --reset
 
 ## Updated in this version
 
-本轮更新重点如下：
+本轮更新围绕“证据质量、资料可移植性、报告可读性、运行可复现性”四个方向展开。
 
-- **[UPDATED] Evidence reranker**：新增 chunk 证据重排层，采用“embedding 宽召回 + LLM 精排”的方式筛选 `company` 和 `peer` 证据，降低“话题相关但不能回答”的误召回。
-- **[UPDATED] Portable manual sources**：`manual_sources.csv` 支持 `local_path` 项目相对路径，本地 HTML/PDF 不再绑定某台机器的绝对路径。
-- **[UPDATED] PDF and HTML source package**：补充并分类整理 `policy`、`industry`、`company`、`peer` 四类本地资料，支持网页、本地 HTML、本地 PDF 和远程 URL 统一进入流程。
-- **[UPDATED] Report readability**：报告正文不再插入密集 `[E..]` 引用，证据集中放置到末端索引和来源附录。
-- **[UPDATED] Runbook and delivery hygiene**：新增 `RUNBOOK.md`、更新 `MANIFEST.txt`，并用 `.gitignore` 排除 `.env`、缓存和运行中间产物。
-- **[UPDATED] Verified example outputs**：`examples/` 中同步最新完整运行结果，验证指标为抓取 `35/35`、解析 `35/35`、Reranker/影响评估/报告生成均未 fallback。
+| Area | What changed | Why it matters |
+|---|---|---|
+| **Evidence Quality** | Added `evidence_reranker`: embedding wide retrieval first, then LLM reranking for `company` and `peer` chunks. | Reduces false positives where a chunk is topic-related but cannot actually support the report. |
+| **Portable Sources** | `manual_sources.csv` now supports project-relative `local_path` for local HTML/PDF files. | The project can be moved or cloned without breaking local source references. |
+| **Source Coverage** | Added and classified local sources across `policy`, `industry`, `company`, and `peer`. | Remote URLs, local HTML, local PDF, and online PDF can enter one unified pipeline. |
+| **Report Readability** | Moved dense `[E..]` citations out of the body and into the final evidence index/source appendix. | The generated report reads more like a business monthly report while staying traceable. |
+| **Run Hygiene** | Added `RUNBOOK.md`, refreshed `MANIFEST.txt`, and expanded `.gitignore`. | Keeps setup, validation, and delivery cleaner; excludes `.env`, caches, and runtime artifacts. |
+| **Verified Output** | Synced `examples/` with the latest full run: fetch `35/35`, parse `35/35`, no reranker/assessment/report fallback. | Provides a reproducible reference output for checking expected behavior. |
 
 ## Why use this project?
 
