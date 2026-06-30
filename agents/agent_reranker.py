@@ -5,6 +5,7 @@ from openai import OpenAI
 
 from config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
 from schemas import ScoreResult, AgentRerankDecision
+from services.langsmith_utils import wrap_openai_client
 
 
 PROMPT = """
@@ -77,7 +78,7 @@ def rerank_with_agent(
     if LLM_BASE_URL:
         client_kwargs["base_url"] = LLM_BASE_URL
 
-    client = OpenAI(**client_kwargs)
+    client = wrap_openai_client(OpenAI(**client_kwargs))
 
     resp = client.chat.completions.create(
         model=LLM_MODEL,

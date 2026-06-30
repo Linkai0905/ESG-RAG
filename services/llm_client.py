@@ -15,16 +15,18 @@ from config import (
     LLM_REASONING_EFFORT,
     LLM_MAX_TOKENS,
 )
+from services.langsmith_utils import wrap_openai_client
 
 
 def get_client() -> OpenAI:
     if not LLM_API_KEY:
         raise RuntimeError("LLM_API_KEY is missing")
 
-    return OpenAI(
+    client = OpenAI(
         api_key=LLM_API_KEY,
         base_url=LLM_BASE_URL,
     )
+    return wrap_openai_client(client)
 
 
 def _extra_body() -> dict[str, Any]:

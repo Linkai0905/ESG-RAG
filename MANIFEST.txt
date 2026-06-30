@@ -17,6 +17,7 @@ prompts.py
 schemas.py
 requirements.txt
 manual_sources.csv
+langgraph.json
 __init__.py
 
 ## Agent modules
@@ -39,6 +40,7 @@ services/html_parser.py
 services/html_to_markdown.py
 services/light_crawler.py
 services/llm_client.py
+services/langsmith_utils.py
 services/merge_urls_node.py
 services/mineru_parser.py
 services/pdf_link_extractor.py

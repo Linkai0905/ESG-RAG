@@ -1,0 +1,10 @@
+{
+  "dependencies": [
+    "."
+  ],
+  "graphs": {
+    "esg_monthly_report": "./graph.py:studio_graph"
+  },
+  "env": "./.env",
+  "python_version": "3.11"
+}

@@ -791,3 +791,8 @@ def build_graph():
     builder.add_edge("export_files", END)
 
     return builder.compile()
+
+
+# LangGraph Studio entrypoint.
+# `langgraph.json` points to this compiled graph.
+studio_graph = build_graph()

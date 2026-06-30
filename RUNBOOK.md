@@ -50,7 +50,43 @@ python main.py --company 中国神华 --anchor-date 2026-06-29 --reset
 
 运行完成后，命令行会打印 `=== ESG Demo 完成 ===`、`Metrics` 和输出路径。
 
-## 4. 成功标准
+## 4. LangGraph Studio / LangSmith
+
+项目根目录包含 `langgraph.json`，Studio 入口为：
+
+```text
+esg_monthly_report -> ./graph.py:studio_graph
+```
+
+先校验配置：
+
+```bash
+langgraph validate
+```
+
+启动本地 LangGraph API server：
+
+```bash
+langgraph dev --allow-blocking --no-browser --port 2024
+```
+
+在 LangSmith Studio 的 Server connection settings 中填写：
+
+```text
+http://127.0.0.1:2024
+```
+
+如需把运行链路发送到 LangSmith Tracing，在 `.env` 中配置：
+
+```bash
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=
+LANGSMITH_PROJECT=ESG-RAG-Monthly-Report
+```
+
+如果 Studio 显示 `Failed to fetch`，通常表示 `langgraph dev` 没有运行，端口不是 `2024`，或浏览器无法访问本地 server。
+
+## 5. 成功标准
 
 检查以下文件：
 
@@ -79,7 +115,7 @@ errors.json = []
 examples/metrics_中国神华_2026-06-29.json
 ```
 
-## 5. 数据源维护
+## 6. 数据源维护
 
 手工资料源集中在：
 
@@ -108,7 +144,7 @@ data/manual_sources/
 | `tags` | 标题或主题 |
 | `note` | 资料用途说明 |
 
-## 6. 产物说明
+## 7. 产物说明
 
 | 路径 | 说明 |
 |---|---|
@@ -125,11 +161,13 @@ data/manual_sources/
 | `reports/metrics.json` | 运行指标 |
 | `reports/errors.json` | 错误记录 |
 
-## 7. 常见问题
+## 8. 常见问题
 
 `ModuleNotFoundError`：确认已安装 `requirements.txt`，并在正确 Python 环境中运行。
 
 `playwright` 浏览器缺失：执行 `python -m playwright install chromium`。
+
+`LangSmith Studio Failed to fetch`：确认已执行 `langgraph dev --allow-blocking --no-browser --port 2024`，并在 Studio 中把 API server 设置为 `http://127.0.0.1:2024`。
 
 PDF 解析失败：确认 `MINERU_CMD` 指向可执行的 MinerU 命令，且 `mineru --help` 可运行。
 

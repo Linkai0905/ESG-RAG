@@ -36,6 +36,7 @@ python main.py --company 中国神华 --anchor-date 2026-06-29 --reset
 | **Source Coverage** | Added and classified local sources across `policy`, `industry`, `company`, and `peer`. | Remote URLs, local HTML, local PDF, and online PDF can enter one unified pipeline. |
 | **Report Readability** | Moved dense `[E..]` citations out of the body and into the final evidence index/source appendix. | The generated report reads more like a business monthly report while staying traceable. |
 | **Run Hygiene** | Added `RUNBOOK.md`, refreshed `MANIFEST.txt`, and expanded `.gitignore`. | Keeps setup, validation, and delivery cleaner; excludes `.env`, caches, and runtime artifacts. |
+| **LangSmith / Studio** | Added `langgraph.json`, `studio_graph`, and LangSmith OpenAI tracing wrapper. | The graph can run in LangGraph Studio and send node/model traces to LangSmith when enabled. |
 | **Verified Output** | Synced `examples/` with the latest full run: fetch `35/35`, parse `35/35`, no reranker/assessment/report fallback. | Provides a reproducible reference output for checking expected behavior. |
 
 ## Why use this project?
@@ -160,6 +161,7 @@ The four search branches use a fan-out/fan-in pattern: `build_search_tasks` disp
 ├── main.py                        # CLI entrypoint
 ├── graph.py                       # LangGraph orchestration
 ├── config.py                      # Company, model, retrieval, and directory config
+├── langgraph.json                 # LangGraph Studio / API server configuration
 ├── schemas.py                     # Pydantic / TypedDict schemas
 ├── manual_sources.csv             # Curated source registry
 ├── requirements.txt               # Python dependencies
@@ -186,6 +188,7 @@ The four search branches use a fan-out/fan-in pattern: `build_search_tasks` disp
 │   ├── chroma_store.py
 │   ├── embedding_client.py
 │   ├── evidence_reranker.py
+│   ├── langsmith_utils.py
 │   ├── llm_client.py
 │   └── exporter.py
 ├── data/manual_sources/           # Curated HTML/PDF examples by section
@@ -271,6 +274,42 @@ runs/2026-06-29_中国神华/reports/errors.json
 
 ```bash
 streamlit run app.py
+```
+
+### 5. Run LangGraph Studio / LangSmith tracing
+
+The project includes `langgraph.json`, which exposes the compiled graph as:
+
+```text
+esg_monthly_report -> ./graph.py:studio_graph
+```
+
+To validate the Studio configuration:
+
+```bash
+langgraph validate
+```
+
+To start the local LangGraph API server used by Studio:
+
+```bash
+langgraph dev --allow-blocking --no-browser --port 2024
+```
+
+Then open LangSmith Studio and set the API server URL to:
+
+```text
+http://127.0.0.1:2024
+```
+
+If Studio shows `Failed to fetch`, the local API server is not running or the browser cannot reach it. Keep the `langgraph dev` process running while using Studio.
+
+Optional LangSmith tracing:
+
+```bash
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=
+LANGSMITH_PROJECT=ESG-RAG-Monthly-Report
 ```
 
 ## Manual source format
