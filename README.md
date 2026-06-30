@@ -385,6 +385,7 @@ The latest verified outputs are stored in `examples/`.
 
 - `RUNBOOK.md` — operational checklist, success criteria, and troubleshooting.
 - `MANIFEST.txt` — project file inventory.
+- `docs/DEMO_OPTIMIZATION.md` — current MVP gaps and follow-up engineering items.
 - `examples/generated_report_中国神华_2026-06-29.md` — sample generated report.
 - `examples/evidence_中国神华_2026-06-29.json` — final evidence package.
 - `examples/metrics_中国神华_2026-06-29.json` — verified run metrics.

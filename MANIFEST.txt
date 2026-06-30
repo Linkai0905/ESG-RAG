@@ -4,9 +4,9 @@
 .gitignore
 .env.example
 README.md
-README_PACKAGE.txt
 RUNBOOK.md
 MANIFEST.txt
+docs/DEMO_OPTIMIZATION.md
 
 ## Entrypoints and configuration
 app.py
