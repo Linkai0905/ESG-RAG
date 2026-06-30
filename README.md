@@ -91,32 +91,66 @@ report.md / evidence.json / impact_assessments.json / metrics.json
 
 ### LangGraph nodes
 
-```text
-init_context
-  ↓
-company_discovery
-  ↓
-build_search_tasks
-  ↓
-search_policy ┐
-search_industry ├─> merge_urls
-search_company ┤
-search_peer ┘
-  ↓
-fetch_pages
-  ↓
-parse_documents
-  ↓
-index_chroma
-  ↓
-retrieve_evidence
-  ↓
-assess_impact
-  ↓
-generate_report
-  ↓
-export_files
+The diagram below uses GitHub-native Mermaid, so it renders directly as a flowchart in the README.
+
+```mermaid
+flowchart TD
+    ROOT["ESG RAG Monthly Report Agent"]
+
+    ROOT --> S1["1. 配置与任务理解<br/>init_context<br/>company_discovery<br/>build_search_tasks"]
+    ROOT --> S2["2. 检索路由<br/>search_policy<br/>search_industry<br/>search_company<br/>search_peer<br/>merge_urls"]
+    ROOT --> S3["3. 采集 / 解析调用<br/>fetch_pages<br/>parse_documents"]
+    ROOT --> S4["4. 证据审核<br/>index_chroma<br/>retrieve_evidence<br/>evidence_reranker"]
+    ROOT --> S5["5. 月报写作<br/>assess_impact<br/>generate_report"]
+    ROOT --> S6["6. 导出与复核<br/>export_files"]
+
+    S1 --> A1["run_id / period<br/>company_profile.json<br/>search_tasks.json"]
+    S2 --> A2["url_candidates.json<br/>url_queue.json<br/>url_metrics.json"]
+    S3 --> A3["HTML / PDF raw files<br/>parsed_docs.json"]
+    S4 --> A4["Chroma collection<br/>evidence.json<br/>rerank_decisions.json"]
+    S5 --> A5["impact_assessments.json<br/>report.md"]
+    S6 --> A6["metrics.json / errors.json<br/>examples/ verified outputs"]
+
+    classDef root fill:#eeeeee,stroke:#8f8f8f,stroke-width:1px,color:#111;
+    classDef stage fill:#f7f7f7,stroke:#aaaaaa,stroke-width:1px,color:#111;
+    classDef artifact fill:#ffffff,stroke:#b8b8b8,stroke-width:1px,color:#111;
+    class ROOT root;
+    class S1,S2,S3,S4,S5,S6 stage;
+    class A1,A2,A3,A4,A5,A6 artifact;
 ```
+
+### Graph node format
+
+LangGraph uses `ESGDemoState` as the shared state. Each node receives the current state and returns only the fields it wants to update; LangGraph then merges those partial updates into the next state.
+
+```python
+def some_node(state: ESGDemoState) -> dict:
+    return {
+        "state_key": value,
+        "metrics": {...},
+        "errors": [...],
+    }
+```
+
+The four search branches use a fan-out/fan-in pattern: `build_search_tasks` dispatches to `search_policy`, `search_industry`, `search_company`, and `search_peer`; `merge_urls` waits for all four branches and then builds one unified fetch queue.
+
+| Node | Role | Main state input | Main state output / artifacts |
+|---|---|---|---|
+| `init_context` | Initialize the reporting run. | `company`, `anchor_date` | `run_id`, `period_start`, `period_end`, `run_paths`, `chroma_path`, `collection_name`, base `metrics`. |
+| `company_discovery` | Build the company profile and peer list. | `company` | `company_profile`, `queue/company_profile.json`, peer count metric. |
+| `build_search_tasks` | Create section-aware search plans. | `period_start`, `period_end` | `search_tasks`, `queue/search_tasks.json`, search task count metric. |
+| `search_policy` | Retrieve ESG policy, rating, and standard candidates. | `search_tasks`, report period | Appends `url_candidates`; writes policy scoring/debug files under `queue/`. |
+| `search_industry` | Retrieve sector news and best-practice candidates. | `search_tasks`, report period | Appends `url_candidates`; writes industry scoring/debug files under `queue/`. |
+| `search_company` | Retrieve client-company announcements and news. | `search_tasks`, report period | Appends `url_candidates`; writes company scoring/debug files under `queue/`. |
+| `search_peer` | Retrieve peer-company ESG action candidates. | `search_tasks`, report period | Appends `url_candidates`; writes peer scoring/debug files under `queue/`. |
+| `merge_urls` | Normalize, deduplicate, and rank all URL candidates. | `url_candidates` | `url_queue`, `queue/url_candidates.json`, `queue/url_queue.json`, `queue/url_metrics.json`. |
+| `fetch_pages` | Fetch remote URLs and local `file://` sources. | `url_queue` | `fetched_docs`, raw HTML/PDF files, screenshots/metadata when available, `queue/fetched_docs.json`. |
+| `parse_documents` | Route HTML to the HTML parser and PDF to MinerU. | `fetched_docs` | `parsed_docs`, discovered PDF attachments, `queue/parsed_docs.json`, `queue/discovered_pdf_candidates.json`. |
+| `index_chroma` | Chunk parsed Markdown and write vectors to Chroma. | `parsed_docs`, `chroma_path`, `collection_name` | `chunks`, `queue/chunks_preview.json`, Chroma collection records. |
+| `retrieve_evidence` | Retrieve section evidence and optionally run LLM reranking. | `chunks` in Chroma, section retrieval queries | `evidence_pack`, `reports/evidence.json`, `reports/evidence_raw.json`, `reports/evidence_rerank_decisions.json`. |
+| `assess_impact` | Convert evidence into ESG impact assessments. | `evidence_pack` | `impact_assessments`, `reports/impact_assessments.json`; uses fallback only if the LLM call fails. |
+| `generate_report` | Generate the monthly report from evidence and assessments. | `evidence_pack`, `impact_assessments`, `parsed_docs` | `report_markdown`, report length/fallback metrics. |
+| `export_files` | Persist final report package and runtime diagnostics. | `report_markdown`, `evidence_pack`, `impact_assessments`, `metrics`, `errors` | `reports/report.md`, `reports/evidence.json`, `reports/impact_assessments.json`, `reports/metrics.json`, `reports/errors.json`. |
 
 ## Project layout
 
