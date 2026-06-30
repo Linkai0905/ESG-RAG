@@ -92,32 +92,50 @@ report.md / evidence.json / impact_assessments.json / metrics.json
 
 ### LangGraph nodes
 
-The diagram below uses GitHub-native Mermaid, so it renders directly as a flowchart in the README.
+This Mermaid graph mirrors the LangGraph Studio node layout and renders directly on GitHub.
 
 ```mermaid
 flowchart TD
-    ROOT["ESG RAG Monthly Report Agent"]
+    START(["__start__"]) --> INIT["init_context"]
+    INIT --> DISCOVERY["company_discovery"]
+    DISCOVERY --> TASKS["build_search_tasks"]
 
-    ROOT --> S1["1. 配置与任务理解<br/>init_context<br/>company_discovery<br/>build_search_tasks"]
-    ROOT --> S2["2. 检索路由<br/>search_policy<br/>search_industry<br/>search_company<br/>search_peer<br/>merge_urls"]
-    ROOT --> S3["3. 采集 / 解析调用<br/>fetch_pages<br/>parse_documents"]
-    ROOT --> S4["4. 证据审核<br/>index_chroma<br/>retrieve_evidence<br/>evidence_reranker"]
-    ROOT --> S5["5. 月报写作<br/>assess_impact<br/>generate_report"]
-    ROOT --> S6["6. 导出与复核<br/>export_files"]
+    TASKS --> POLICY["search_policy"]
+    TASKS --> INDUSTRY["search_industry"]
+    TASKS --> COMPANY["search_company"]
+    TASKS --> PEER["search_peer"]
 
-    S1 --> A1["run_id / period<br/>company_profile.json<br/>search_tasks.json"]
-    S2 --> A2["url_candidates.json<br/>url_queue.json<br/>url_metrics.json"]
-    S3 --> A3["HTML / PDF raw files<br/>parsed_docs.json"]
-    S4 --> A4["Chroma collection<br/>evidence.json<br/>rerank_decisions.json"]
-    S5 --> A5["impact_assessments.json<br/>report.md"]
-    S6 --> A6["metrics.json / errors.json<br/>examples/ verified outputs"]
+    POLICY --> MERGE["merge_urls"]
+    INDUSTRY --> MERGE
+    COMPANY --> MERGE
+    PEER --> MERGE
 
-    classDef root fill:#eeeeee,stroke:#8f8f8f,stroke-width:1px,color:#111;
-    classDef stage fill:#f7f7f7,stroke:#aaaaaa,stroke-width:1px,color:#111;
-    classDef artifact fill:#ffffff,stroke:#b8b8b8,stroke-width:1px,color:#111;
-    class ROOT root;
-    class S1,S2,S3,S4,S5,S6 stage;
-    class A1,A2,A3,A4,A5,A6 artifact;
+    MERGE --> FETCH["fetch_pages"]
+    FETCH --> PARSE["parse_documents"]
+    PARSE --> INDEX["index_chroma"]
+    INDEX --> RETRIEVE["retrieve_evidence"]
+    RETRIEVE --> ASSESS["assess_impact"]
+    ASSESS --> REPORT["generate_report"]
+    REPORT --> EXPORT["export_files"]
+    EXPORT --> END(["__end__"])
+
+    classDef terminal fill:#eeeeee,stroke:#8a8a8a,stroke-width:1px,color:#111;
+    classDef setup fill:#f4edff,stroke:#9b72cf,stroke-width:1px,color:#5b21b6;
+    classDef plan fill:#fff4e6,stroke:#f4a261,stroke-width:1px,color:#9a3412;
+    classDef search fill:#ecfdf5,stroke:#55b86a,stroke-width:1px,color:#168821;
+    classDef merge fill:#fdf2f8,stroke:#e879f9,stroke-width:1px,color:#be185d;
+    classDef parse fill:#faf5ff,stroke:#d8b4fe,stroke-width:1px,color:#7e22ce;
+    classDef evidence fill:#fdf2f8,stroke:#f0abfc,stroke-width:1px,color:#be185d;
+    classDef writing fill:#eef2ff,stroke:#818cf8,stroke-width:1px,color:#3730a3;
+
+    class START,END terminal;
+    class INIT setup;
+    class DISCOVERY,TASKS plan;
+    class POLICY,INDUSTRY,COMPANY,PEER,FETCH,INDEX,EXPORT search;
+    class MERGE merge;
+    class PARSE parse;
+    class RETRIEVE evidence;
+    class ASSESS,REPORT writing;
 ```
 
 ### Graph node format
