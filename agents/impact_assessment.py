@@ -8,19 +8,22 @@ from services.llm_client import chat_json
 
 
 IMPACT_PROMPT = """
-你是ESG影响评估Agent。
-你只能基于 evidence_pack 中的证据进行判断，不能使用外部知识或编造事实。
+Role: ESG impact assessment analyst.
 
-任务：
-1. 识别每条证据对应的事件。
-2. 判断该事件对中国神华的 ESG 影响。
-3. 输出风险、机会和建议。
-4. 所有判断必须绑定 evidence_id。
-5. 如果证据不足，impact_direction 写 uncertain，confidence 不得超过 0.55。
-6. 如果来源不是官方、监管、交易所、公司公告，confidence 不得超过 0.75。
-7. 建议必须是可执行动作，围绕披露、数据跟踪、风险预警、管理优化、投资者沟通展开。
+Evidence boundary:
+- Use only `evidence_pack`.
+- Do not introduce external facts.
+- Every assessment must reference at least one `evidence_id`.
 
-必须输出一个 JSON object，格式如下：
+Assessment rules:
+1. Identify the event represented by each material evidence item.
+2. Classify ESG dimension, impact direction, and materiality.
+3. Provide risk, opportunity, recommendation, action owner, confidence, and caveat.
+4. When evidence is insufficient, set `impact_direction` to `uncertain` and keep `confidence` <= 0.55.
+5. For non-official sources, keep `confidence` <= 0.75.
+6. Recommendations must map to disclosure, data tracking, risk monitoring, management improvement, or investor communication.
+
+Return one JSON object with this schema:
 
 {{
   "assessments": [
@@ -56,7 +59,7 @@ def assess_impact(evidence_pack: list[dict]) -> list[dict]:
     raw = chat_json(
         prompt,
         temperature=0.1,
-        system_prompt="你是严格的ESG影响评估JSON生成器，只输出合法JSON object。",
+        system_prompt="Return a valid JSON object for ESG impact assessment. No Markdown.",
     )
 
     items = raw.get("assessments", [])

@@ -23,7 +23,7 @@ from config import (
 )
 
 from schemas import (
-    ESGDemoState,
+    ESGWorkflowState,
     FetchResult,
     UrlCandidate,
     UrlQueueItem,
@@ -51,17 +51,17 @@ from services.exporter import export_all, save_json
 # Helpers
 # =========================
 
-def _run_paths(state: ESGDemoState) -> dict:
+def _run_paths(state: ESGWorkflowState) -> dict:
     return build_run_dirs(state["run_id"])
 
 
-def _merge_metrics(state: ESGDemoState, update: dict) -> dict:
+def _merge_metrics(state: ESGWorkflowState, update: dict) -> dict:
     metrics = dict(state.get("metrics", {}))
     metrics.update(update)
     return metrics
 
 
-def _merge_errors(state: ESGDemoState, stage: str, error: Exception) -> list[dict]:
+def _merge_errors(state: ESGWorkflowState, stage: str, error: Exception) -> list[dict]:
     errors = list(state.get("errors", []))
     errors.append({
         "stage": stage,
@@ -70,7 +70,7 @@ def _merge_errors(state: ESGDemoState, stage: str, error: Exception) -> list[dic
     return errors
 
 
-def _save_run_json(state: ESGDemoState, relative_path: str, data: Any) -> None:
+def _save_run_json(state: ESGWorkflowState, relative_path: str, data: Any) -> None:
     run_paths = _run_paths(state)
     path = run_paths["base"] / relative_path
     save_json(path, data)
@@ -91,14 +91,14 @@ def _take_top_k_by_section(items: list[dict], top_k: int) -> list[dict]:
     return output
 
 
-def _find_search_task(state: ESGDemoState, section: str) -> dict | None:
+def _find_search_task(state: ESGWorkflowState, section: str) -> dict | None:
     for task in state.get("search_tasks", []):
         if task.get("section") == section:
             return task
     return None
 
 
-def _run_one_search_node(state: ESGDemoState, section: str) -> dict:
+def _run_one_search_node(state: ESGWorkflowState, section: str) -> dict:
     task = _find_search_task(state, section)
 
     if not task:
@@ -137,7 +137,7 @@ def _run_one_search_node(state: ESGDemoState, section: str) -> dict:
 # Nodes
 # =========================
 
-def init_context(state: ESGDemoState) -> dict:
+def init_context(state: ESGWorkflowState) -> dict:
     company = state.get("company") or DEFAULT_COMPANY
     anchor_date = state.get("anchor_date") or DEFAULT_ANCHOR_DATE
 
@@ -168,7 +168,7 @@ def init_context(state: ESGDemoState) -> dict:
         },
     }
 
-def company_discovery_node(state: ESGDemoState) -> dict:
+def company_discovery_node(state: ESGWorkflowState) -> dict:
     profile = discover_company(state["company"])
 
     _save_run_json(
@@ -186,7 +186,7 @@ def company_discovery_node(state: ESGDemoState) -> dict:
     }
 
 
-def build_search_tasks_node(state: ESGDemoState) -> dict:
+def build_search_tasks_node(state: ESGWorkflowState) -> dict:
     tasks = build_search_tasks(
         period_start=state["period_start"],
         period_end=state["period_end"],
@@ -206,10 +206,10 @@ def build_search_tasks_node(state: ESGDemoState) -> dict:
     }
 
 
-def run_search_agents_node(state: ESGDemoState) -> dict:
+def run_search_agents_node(state: ESGWorkflowState) -> dict:
     """
-    MVP第一版：顺序调用四个搜索Agent。
-    后续可以拆成 search_policy / search_industry / search_company / search_peer 四个并行节点。
+    Legacy sequential search node retained for compatibility.
+    The active graph uses section-level parallel search nodes.
     """
     all_candidates: list[dict] = []
 
@@ -237,27 +237,27 @@ def run_search_agents_node(state: ESGDemoState) -> dict:
     }
 
 
-def search_policy_node(state: ESGDemoState) -> dict:
+def search_policy_node(state: ESGWorkflowState) -> dict:
     return _run_one_search_node(state, "policy")
 
 
-def search_industry_node(state: ESGDemoState) -> dict:
+def search_industry_node(state: ESGWorkflowState) -> dict:
     return _run_one_search_node(state, "industry")
 
 
-def search_company_node(state: ESGDemoState) -> dict:
+def search_company_node(state: ESGWorkflowState) -> dict:
     return _run_one_search_node(state, "company")
 
 
-def search_peer_node(state: ESGDemoState) -> dict:
+def search_peer_node(state: ESGWorkflowState) -> dict:
     return _run_one_search_node(state, "peer")
 
 
-def merge_urls_node(state: ESGDemoState) -> dict:
+def merge_urls_node(state: ESGWorkflowState) -> dict:
     return merge_ranked_urls_node(state)
 
 
-def fetch_pages_node(state: ESGDemoState) -> dict:
+def fetch_pages_node(state: ESGWorkflowState) -> dict:
     run_paths = _run_paths(state)
     url_queue = state.get("url_queue", [])
 
@@ -309,12 +309,12 @@ def _pdf_candidates_to_queue(
     return [x.model_dump(mode="json") for x in queue.values()]
 
 
-def parse_documents_node(state: ESGDemoState) -> dict:
+def parse_documents_node(state: ESGWorkflowState) -> dict:
     """
     Parser Router:
     - PDF -> MinerU
-    - HTML -> HTML正文抽取
-    - HTML中发现PDF -> 本Demo中直接补抓并解析PDF
+    - HTML -> main text extraction
+    - PDF links discovered in HTML -> bounded attachment fetch and parse
     """
     run_paths = _run_paths(state)
 
@@ -356,8 +356,7 @@ def parse_documents_node(state: ESGDemoState) -> dict:
                 "errors": _merge_errors(state, "parse_documents", e),
             }
 
-    # Demo简化：发现PDF附件后，直接抓取并解析，避免再做复杂循环。
-    # 控制数量，防止一天Demo被PDF拖慢。
+    # Keep attachment expansion bounded so one noisy source cannot dominate the run.
     pdf_queue_all = pdf_queue_all[:10]
 
     if pdf_queue_all:
@@ -373,7 +372,7 @@ def parse_documents_node(state: ESGDemoState) -> dict:
                     parsed = parse_pdf_with_mineru(fetched, run_paths)
                     parsed_docs.append(parsed.model_dump(mode="json"))
             except Exception as e:
-                # PDF附件解析失败不阻断主流程
+                # Attachment parsing failures are recorded but do not block primary sources.
                 state_errors = _merge_errors(state, "parse_pdf_attachment", e)
 
         _save_run_json(
@@ -409,7 +408,7 @@ def parse_documents_node(state: ESGDemoState) -> dict:
     }
 
 
-def index_chroma_node(state: ESGDemoState) -> dict:
+def index_chroma_node(state: ESGWorkflowState) -> dict:
     chunks = parsed_docs_to_chunks(
         parsed_docs=state.get("parsed_docs", []),
         run_id=state["run_id"],
@@ -436,7 +435,7 @@ def index_chroma_node(state: ESGDemoState) -> dict:
     }
 
 
-def retrieve_evidence_node(state: ESGDemoState) -> dict:
+def retrieve_evidence_node(state: ESGWorkflowState) -> dict:
     retrieve_top_k = (
         max(RERANK_PRESELECT_K, EVIDENCE_TOP_K_PER_SECTION)
         if RERANK_ENABLED
@@ -531,7 +530,7 @@ def retrieve_evidence_node(state: ESGDemoState) -> dict:
 
 def _fallback_assessments(evidence_pack: list[dict]) -> list[dict]:
     """
-    LLM失败时的兜底，保证Demo不会断。
+    Deterministic fallback used when assessment generation is unavailable.
     """
     assessments = []
 
@@ -545,18 +544,18 @@ def _fallback_assessments(evidence_pack: list[dict]) -> list[dict]:
             "esg_dimension": ev.get("esg_dim", "Mixed"),
             "impact_direction": "uncertain",
             "materiality": "medium",
-            "risk": "该事项可能对ESG披露、合规管理或投资者沟通产生影响，需结合正式公告进一步确认。",
-            "opportunity": "可作为月度ESG信息跟踪、议题识别和管理优化的参考。",
-            "recommendation": "建议纳入ESG月度监测清单，补充官方来源核验，并在必要时形成对外披露或内部管理建议。",
+            "risk": "该事项可能影响ESG披露、合规管理或投资者沟通，需结合正式公告进一步确认。",
+            "opportunity": "可纳入月度议题跟踪，用于后续披露准备、风险识别和管理优化。",
+            "recommendation": "纳入ESG月度监测清单，补充官方来源核验，并视重要性形成披露或内部管理动作。",
             "action_owner": "ESG披露",
             "confidence": 0.5,
-            "caveat": "LLM评估失败后的规则兜底结果，仅用于Demo展示。",
+            "caveat": "评估生成不可用时的规则化结果，需复核后使用。",
         })
 
     return assessments
 
 
-def assess_impact_node(state: ESGDemoState) -> dict:
+def assess_impact_node(state: ESGWorkflowState) -> dict:
     evidence_pack = state.get("evidence_pack", [])
 
     try:
@@ -588,21 +587,21 @@ def assess_impact_node(state: ESGDemoState) -> dict:
     }
 
 
-def _fallback_report(state: ESGDemoState) -> str:
+def _fallback_report(state: ESGWorkflowState) -> str:
     evidence_pack = state.get("evidence_pack", [])
     impact_assessments = state.get("impact_assessments", [])
 
     lines = [
-        f"# {state['company']} ESG月报草稿",
+        f"# {state['company']} ESG月报",
         "",
         f"报告周期：{state['period_start']} 至 {state['period_end']}",
         "",
-        "> 注：本报告为自动生成Demo草稿，需经人工复核后使用。",
+        "> 注：本报告基于公开资料和结构化证据生成，正式使用前需完成业务与合规复核。",
         "",
         "## 一、本月摘要",
         "",
         "- 本月系统已完成政策、行业、公司、对标企业四类公开资料的检索和证据整理。",
-        "- 由于大模型写作调用失败，以下内容为规则兜底版摘要。",
+        "- 报告写作服务不可用，以下内容由规则模板生成。",
         "",
         "## 二、ESG政策、评级、标准动态",
         "",
@@ -682,7 +681,7 @@ def _fallback_report(state: ESGDemoState) -> str:
     return "\n".join(lines)
 
 
-def generate_report_node(state: ESGDemoState) -> dict:
+def generate_report_node(state: ESGWorkflowState) -> dict:
     try:
         report_markdown = llm_generate_report(
             company=state["company"],
@@ -712,7 +711,7 @@ def generate_report_node(state: ESGDemoState) -> dict:
     }
 
 
-def export_files_node(state: ESGDemoState) -> dict:
+def export_files_node(state: ESGWorkflowState) -> dict:
     run_paths = _run_paths(state)
 
     output_paths = export_all(
@@ -722,7 +721,7 @@ def export_files_node(state: ESGDemoState) -> dict:
         impact_assessments=state.get("impact_assessments", []),
     )
 
-    # 额外保存最终metrics和errors
+    # Persist final diagnostics after report export.
     save_json(
         run_paths["reports"] / "metrics.json",
         state.get("metrics", {}),
@@ -745,7 +744,7 @@ def export_files_node(state: ESGDemoState) -> dict:
 # =========================
 
 def build_graph():
-    builder = StateGraph(ESGDemoState)
+    builder = StateGraph(ESGWorkflowState)
 
     builder.add_node("init_context", init_context)
     builder.add_node("company_discovery", company_discovery_node)
@@ -769,13 +768,13 @@ def build_graph():
     builder.add_edge("init_context", "company_discovery")
     builder.add_edge("company_discovery", "build_search_tasks")
 
-    # 并行搜索
+    # Section-level search fan-out.
     builder.add_edge("build_search_tasks", "search_policy")
     builder.add_edge("build_search_tasks", "search_industry")
     builder.add_edge("build_search_tasks", "search_company")
     builder.add_edge("build_search_tasks", "search_peer")
 
-    # 等四个 Search Agent 都完成后再合并 URL
+    # Merge only after all section searches have returned.
     builder.add_edge(
         ["search_policy", "search_industry", "search_company", "search_peer"],
         "merge_urls",

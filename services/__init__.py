@@ -1,2 +1,1 @@
-"""Service helpers for the ESG demo."""
-
+"""Service layer for source ingestion, retrieval, and export."""

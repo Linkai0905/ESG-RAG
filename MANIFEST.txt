@@ -1,4 +1,4 @@
-# ESG RAG Demo file manifest
+# ESG RAG file manifest
 
 ## Documentation
 .gitignore

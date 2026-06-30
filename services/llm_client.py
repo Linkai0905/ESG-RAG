@@ -94,13 +94,13 @@ def chat_json(
         {
             "role": "system",
             "content": system_prompt
-            or "你是一个严格的 JSON 生成器。只能输出合法 JSON object，不要输出 Markdown。",
+            or "Return a valid JSON object only. No Markdown.",
         },
         {
             "role": "user",
             "content": (
                 prompt
-                + "\n\n请只输出一个合法 JSON object，不要输出 Markdown，不要输出解释。"
+                + "\n\nReturn one valid JSON object only. Do not include Markdown or explanatory text."
             ),
         },
     ]

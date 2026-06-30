@@ -90,7 +90,7 @@ def run_search_agent(task: dict) -> list[dict]:
                 requires_browser=True,
                 requires_mineru=raw["url"].lower().endswith(".pdf"),
                 priority=_default_priority(section),
-                reason=f"搜索任务 {section} 命中 query: {query}",
+                reason=f"Search task {section} matched query: {query}",
             )
             candidates.append(candidate.model_dump(mode="json"))
 

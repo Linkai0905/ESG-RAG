@@ -1,2 +1,1 @@
-"""ESG demo package."""
-
+"""ESG monthly reporting workflow."""

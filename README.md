@@ -16,18 +16,18 @@
 
 <br>
 
-本项目是一个面向 ESG 月度监测场景的 RAG Demo。系统以“中国神华”为示例公司，围绕 ESG 政策、客户所属行业动态、客户公司动态和对标企业行动四类信息源，完成资料召回、网页/PDF 抓取、正文解析、向量检索、证据重排、影响评估和月报生成。
+面向 ESG 月度监测的 RAG 工作流。默认公司为“中国神华”，资料按 `policy`、`industry`、`company`、`peer` 四类来源组织，覆盖候选召回、网页/PDF 抓取、正文解析、向量入库、证据重排、影响评估和报告导出。
 
 ```bash
 python main.py --company 中国神华 --anchor-date 2026-06-29 --reset
 ```
 
 > [!TIP]
-> 这是一个工程演示项目，报告输出为可追溯草稿。正式使用时仍应结合人工复核、公司内部数据和合规审阅。
+> 输出内容适合作为研究和内部评审材料；用于正式披露前，应补充公司内部数据、业务确认和合规审阅。
 
 ## Updated in this version
 
-本轮更新围绕“证据质量、资料可移植性、报告可读性、运行可复现性”四个方向展开。
+当前版本重点放在证据质量、资料可移植性、报告可读性和运行复现。
 
 | Area | What changed | Why it matters |
 |---|---|---|
@@ -41,9 +41,9 @@ python main.py --company 中国神华 --anchor-date 2026-06-29 --reset
 
 ## Why use this project?
 
-ESG 月报并不是单纯的新闻摘要。一个可用的 ESG RAG 系统需要同时解决资料覆盖、证据质量、报告结构和可追溯性问题。
+ESG 月报的关键不在于汇总新闻，而在于把外部变化转化为可追溯的管理判断。该工作流重点处理四个问题：资料覆盖、证据质量、报告结构和运行可复查。
 
-- **Evidence-backed generation**：报告生成依赖 `evidence.json` 和 `impact_assessments.json`，避免纯模型发挥。
+- **Evidence-backed generation**：报告生成阶段只读取 `evidence.json` 和 `impact_assessments.json`。
 - **Section-aware retrieval**：将资料分为 `policy`、`industry`、`company`、`peer` 四个分支，分别召回和评分。
 - **Candidate queue separation**：候选层与抓取队列层分离，方便并行检索、全局去重、排序和调试。
 - **Multi-format ingestion**：支持远程网页、本地 HTML、本地 PDF、在线 PDF，并统一解析成 Markdown。
@@ -140,10 +140,10 @@ flowchart TD
 
 ### Graph node format
 
-LangGraph uses `ESGDemoState` as the shared state. Each node receives the current state and returns only the fields it wants to update; LangGraph then merges those partial updates into the next state.
+LangGraph uses `ESGWorkflowState` as the shared state. Each node receives the current state and returns only the fields it wants to update; LangGraph then merges those partial updates into the next state.
 
 ```python
-def some_node(state: ESGDemoState) -> dict:
+def some_node(state: ESGWorkflowState) -> dict:
     return {
         "state_key": value,
         "metrics": {...},
@@ -228,8 +228,8 @@ python -m playwright install chromium
 If using conda:
 
 ```bash
-conda create -n esg-rag-demo python=3.11
-conda activate esg-rag-demo
+conda create -n esg-rag python=3.11
+conda activate esg-rag
 pip install -r requirements.txt
 python -m playwright install chromium
 ```
@@ -338,13 +338,13 @@ LANGSMITH_PROJECT=ESG-RAG-Monthly-Report
 url,local_path,section_hint,priority,pinned,expected_date,source_type_hint,source_name_hint,tags,note
 ```
 
-Example local source:
+Local source example:
 
 ```csv
 ,data/manual_sources/company/company_01.html,company,4,false,2026-06-08,html,中国神华样例,中国神华安全生产与绿色运营动态,公司动态 HTML
 ```
 
-Example remote source:
+Remote source example:
 
 ```csv
 https://paper.cnstock.com/html/2026-05/29/content_2223245.htm,,company,4,false,2026-05-29,url,上海证券报,中国神华独立非执行董事离任公告,治理事件观察
@@ -391,8 +391,8 @@ The latest verified outputs are stored in `examples/`.
 
 ## Limitations
 
-- The generated report is a draft and does not replace professional ESG review.
-- Manual sources are curated for reproducible demonstration; production use should connect broader policy, announcement, news, and internal data feeds.
+- The generated report is a working draft and does not replace ESG, legal, or disclosure review.
+- Manual sources are curated for reproducible runs; production deployments should connect broader policy, announcement, news, and internal data feeds.
 - PDF parsing speed depends on MinerU and local hardware.
 - LLM and embedding APIs must be available for impact assessment, reranking, and report generation.
 

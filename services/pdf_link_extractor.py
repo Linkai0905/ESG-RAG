@@ -29,7 +29,7 @@ def extract_pdf_candidates(fetch_result: FetchResult) -> list[dict]:
         item = UrlCandidate(
             url=pdf_url,
             title=text or fetch_result.title,
-            snippet="HTML页面中发现的PDF附件",
+            snippet="PDF attachment discovered from HTML source",
             source_name=fetch_result.source_name,
             publish_date=fetch_result.publish_date,
             section=fetch_result.section,
@@ -40,7 +40,7 @@ def extract_pdf_candidates(fetch_result: FetchResult) -> list[dict]:
             requires_browser=True,
             requires_mineru=True,
             priority=fetch_result.source_type == SourceType.ANNOUNCEMENT and 95 or 80,
-            reason=f"从父页面发现PDF附件：{fetch_result.final_url}",
+            reason=f"PDF attachment discovered from parent source: {fetch_result.final_url}",
         )
 
         candidates.append(item.model_dump(mode="json"))

@@ -152,7 +152,7 @@ def retrieve_evidence(
                 score=chunk["score"],
                 rank=chunk["rank"],
                 authority_score=float(meta.get("authority_score", 0.5) or 0.5),
-                relevance_reason=f"命中章节 {section} 的检索问题：{query}",
+                relevance_reason=f"Matched section={section}; query={query}",
             )
 
             evidence.append(evidence_item.model_dump(mode="json"))

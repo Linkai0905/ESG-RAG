@@ -67,16 +67,14 @@ def _embed_batch(client: OpenAI, batch: List[str]) -> List[List[float]]:
     if EMBEDDING_ENCODING_FORMAT:
         kwargs["encoding_format"] = EMBEDDING_ENCODING_FORMAT
 
-    # 不默认传 dimensions。
-    # 只有 .env 里 EMBEDDING_PASS_DIMENSIONS=true 且 EMBEDDING_DIM 有值时才传。
+    # Pass dimensions only when the provider explicitly supports it.
     if EMBEDDING_PASS_DIMENSIONS and EMBEDDING_DIM:
         kwargs["dimensions"] = EMBEDDING_DIM
 
     try:
         resp = client.embeddings.create(**kwargs)
     except Exception as e:
-        # 有些 OpenAI-compatible embedding 服务不支持 dimensions。
-        # 如果传了 dimensions 报错，自动去掉 dimensions 重试一次。
+        # Some OpenAI-compatible providers reject dimensions; retry without it.
         if "dimensions" in kwargs:
             kwargs.pop("dimensions", None)
             resp = client.embeddings.create(**kwargs)
@@ -92,6 +90,5 @@ def _normalize_text(text: str) -> str:
     text = text.replace("\x00", " ")
     text = " ".join(text.split())
 
-    # Demo 阶段字符级截断，避免网页正文异常超长。
-    # 正常 chunker 已经切到 800 字左右，这里只是兜底。
+    # Defensive truncation for unusually long extracted text.
     return text[:6000]

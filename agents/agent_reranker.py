@@ -9,10 +9,10 @@ from services.langsmith_utils import wrap_openai_client
 
 
 PROMPT = """
-你是信息检索重排Agent。
+Role: retrieval reranker.
 
-你只判断候选资料是否适合写入指定 section。
-不要扩写事实，不要生成报告。
+Scope: score whether each candidate is suitable for the target section.
+Do not expand facts or draft report content.
 
 section_id:
 {section_id}
@@ -23,15 +23,15 @@ section_query:
 report_period:
 {report_period}
 
-请对 candidates 逐条打分：
+Score each candidate:
 - semantic_relevance: 1-5
 - section_fit: 1-5
 - evidence_strength: 1-5
 - novelty: 1-5
 - agent_score: 0-100
-- reason: 简要原因
+- reason: concise rationale
 
-输出 JSON 数组。
+Return a JSON array.
 
 candidates:
 {candidates}

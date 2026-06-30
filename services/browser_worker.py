@@ -68,7 +68,7 @@ def _fetch_html_with_browser(
         browser = p.chromium.launch(headless=True)
         page = browser.new_page(
             viewport={"width": 1365, "height": 900},
-            user_agent="Mozilla/5.0 ESGDemoBot/0.1",
+            user_agent="Mozilla/5.0 ESGRAGResearch/1.0",
         )
 
         try:

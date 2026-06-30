@@ -55,10 +55,10 @@ EMBEDDING_BASE_URL = os.getenv(
     "https://dashscope.aliyuncs.com/compatible-mode/v1",
 )
 
-# 不写死任何 embedding model
+# Model name is environment-driven to support provider swaps.
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "")
 
-# 可选。某些 embedding 服务支持 dimensions，某些不支持。
+# Optional; not every embedding provider accepts dimensions.
 _raw_embedding_dim = os.getenv("EMBEDDING_DIM", "").strip()
 EMBEDDING_DIM = int(_raw_embedding_dim) if _raw_embedding_dim else None
 
@@ -232,8 +232,8 @@ def make_collection_name(
     period_end: str,
 ) -> str:
     """
-    把 embedding model 和 dim 放进 collection name，
-    避免切换 embedding 后 Chroma 维度冲突。
+    Include embedding model and dimension in collection names to avoid
+    Chroma dimension conflicts after provider changes.
     """
     company_part = _slug(company)
     model_part = _slug(EMBEDDING_MODEL)

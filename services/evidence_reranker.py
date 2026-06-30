@@ -9,35 +9,37 @@ from services.llm_client import chat_json
 
 
 RERANK_PROMPT = """
-你是 RAG 证据重排器，只判断 evidence chunk 是否适合支撑 ESG 月报对应章节。
-不要生成报告，不要扩写事实。
+Role: evidence reranker for an ESG monthly reporting workflow.
 
-公司：{company}
-报告周期：{period_start} 至 {period_end}
-章节：{section}
-章节检索目标：{section_query}
+Scope: score whether each evidence chunk can support the target report section.
+Do not draft report content or add facts.
 
-请对每条 evidence 打 0-10 分：
-- 0：完全无关、明显对象错误、无法支撑该章节
-- 1-2：只有 ESG/行业话题相似，但不能回答本章节问题
-- 3-5：可作为背景，但不能直接支撑正文判断
-- 6-8：能支撑章节中的一个具体判断
-- 9-10：高度相关，能直接作为正文核心证据
+Company: {company}
+Report period: {period_start} to {period_end}
+Section: {section}
+Retrieval objective: {section_query}
 
-重点区分：
-- 同话题不等于能回答
-- 同行业不等于同公司
-- 同公司新闻不等于 ESG 相关
-- 背景政策不等于公司动态证据
+Scoring rubric:
+- 0: unrelated, wrong subject, or unusable for this section
+- 1-2: same broad topic, but does not answer the section objective
+- 3-5: useful as background only
+- 6-8: supports a specific section-level judgment
+- 9-10: directly supports a core body paragraph
 
-输出 JSON object，格式必须为：
+Distinctions to preserve:
+- Same topic is not the same as answerability.
+- Same industry is not the same as same company.
+- Same company news is not necessarily ESG-relevant.
+- Background policy is not company-event evidence.
+
+Return one JSON object with this schema:
 {{
   "items": [
     {{
       "evidence_id": "E01",
       "score": 0,
       "usage": "body|background|drop",
-      "reason": "一句话说明为什么"
+      "reason": "short rationale"
     }}
   ]
 }}
@@ -148,7 +150,7 @@ def _rerank_section(
             prompt,
             temperature=0,
             model=RERANK_MODEL,
-            system_prompt="你是严格的 RAG evidence reranker，只输出合法 JSON object。",
+            system_prompt="Return a valid JSON object for evidence reranking. No Markdown.",
         )
         return _normalize_decisions(result, items)
     except Exception as e:
@@ -207,9 +209,9 @@ def _fallback_decisions(items: list[dict], error: Exception | None = None) -> li
             "score": score,
             "usage": _normalize_usage("", score),
             "reason": (
-                "reranker 调用失败，使用 embedding 分数兜底"
+                "Reranker unavailable; embedding score used."
                 if error else
-                "reranker 未返回该证据评分，使用 embedding 分数兜底"
+                "Reranker did not return this item; embedding score used."
             ),
             "fallback": True,
             "error": str(error)[:300] if error else "",

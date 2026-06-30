@@ -9,15 +9,16 @@ from schemas import RankedUrlCandidate, SectionType, UrlCandidate, UrlQueueItem,
 
 def merge_urls_node(state: dict) -> dict:
     """
-    全局 URL 合并节点。
+    Global URL merge node.
 
-    输入:
+    Input:
         state["url_candidates"]
 
-    输出:
+    Output:
         state["url_queue"]
 
-    Search Agent 不直接写 url_queue；只有本节点负责生成最终抓取队列。
+    Search nodes emit candidates only; this node owns normalization, deduplication,
+    ranking, and final fetch queue construction.
     """
     run_paths = _normalize_run_paths(state["run_paths"])
     queue_dir = Path(run_paths["queue"])
@@ -142,7 +143,7 @@ def _validate_ranked_candidate(raw: dict) -> RankedUrlCandidate:
             publish_date=legacy.publish_date,
             source_name=legacy.source_name,
             source_type=legacy.source_type,
-            origin="ai_search",
+            origin="web_search",
             query=legacy.query,
             discovered_by=legacy.discovered_by,
             pinned=legacy.pinned,

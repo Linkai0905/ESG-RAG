@@ -12,7 +12,7 @@ from graph import build_graph
 
 
 st.set_page_config(
-    page_title="ESG月报生成Demo",
+    page_title="ESG Monthly Report Agent",
     layout="wide",
 )
 
@@ -41,22 +41,22 @@ def reset_run_dir(run_dir: Path) -> None:
     shutil.rmtree(run_dir)
 
 
-st.title("中国神华 ESG 月报生成 Demo")
+st.title("中国神华 ESG 月度监测")
 
 with st.sidebar:
-    st.header("运行参数")
+    st.header("参数")
 
     company = st.text_input("公司名称", DEFAULT_COMPANY)
 
     anchor_date = st.text_input(
-        "时间节点",
+        "基准日期",
         DEFAULT_ANCHOR_DATE,
-        help="系统会自动回看该日期前一个月，例如 2026-06-29 -> 2026-05-29 至 2026-06-29",
+        help="报告周期为基准日期前一个月，例如 2026-06-29 对应 2026-05-29 至 2026-06-29",
     )
 
-    reset = st.checkbox("重新运行并清理旧 run", value=False)
+    reset = st.checkbox("清理同周期历史产物", value=False)
 
-    run_button = st.button("生成月报", type="primary")
+    run_button = st.button("运行工作流", type="primary")
 
 
 if run_button:
@@ -69,7 +69,7 @@ if run_button:
 
     graph = get_graph()
 
-    with st.spinner("正在搜索、抓取、解析、入库、检索、评估并生成月报..."):
+    with st.spinner("工作流运行中：召回、抓取、解析、入库、检索、评估、写作"):
         result = graph.invoke({
             "company": company,
             "anchor_date": anchor_date,
@@ -81,21 +81,21 @@ if run_button:
 result = st.session_state.get("result")
 
 if not result:
-    st.info("请在左侧输入参数并点击「生成月报」。")
+    st.info("在左侧设置参数后运行工作流。")
     st.stop()
 
 
-st.success("月报生成完成")
+st.success("工作流完成")
 
 metrics = result.get("metrics", {})
 output_paths = result.get("output_paths", {})
 errors = result.get("errors", [])
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("URL候选", metrics.get("url_candidate_count", 0))
+col1.metric("URL 候选", metrics.get("url_candidate_count", 0))
 col2.metric("URL队列", metrics.get("url_queue_count", 0))
 col3.metric("Chunk数量", metrics.get("chunk_count", 0))
-col4.metric("Evidence数量", metrics.get("evidence_count", 0))
+col4.metric("Evidence 数量", metrics.get("evidence_count", 0))
 
 col5, col6, col7, col8 = st.columns(4)
 col5.metric("抓取成功", metrics.get("fetch_success_count", 0))
@@ -107,7 +107,7 @@ tabs = st.tabs([
     "月报",
     "证据",
     "影响评估",
-    "运行指标",
+    "指标",
     "错误日志",
 ])
 
@@ -121,11 +121,11 @@ with tabs[0]:
         st.download_button(
             label="下载 report.md",
             data=report_text,
-            file_name="中国神华_ESG月报草稿.md",
+            file_name="中国神华_ESG月报.md",
             mime="text/markdown",
         )
     else:
-        st.warning("未找到报告文件。")
+        st.warning("报告文件不存在。")
 
 
 with tabs[1]:
@@ -142,7 +142,7 @@ with tabs[1]:
             mime="application/json",
         )
     else:
-        st.warning("未找到 evidence.json。")
+        st.warning("evidence.json 不存在。")
 
 
 with tabs[2]:
@@ -159,7 +159,7 @@ with tabs[2]:
             mime="application/json",
         )
     else:
-        st.warning("未找到 impact_assessments.json。")
+        st.warning("impact_assessments.json 不存在。")
 
 
 with tabs[3]:
@@ -170,4 +170,4 @@ with tabs[4]:
     if errors:
         st.json(errors)
     else:
-        st.success("当前运行未记录错误。")
+        st.success("本次运行未记录错误。")

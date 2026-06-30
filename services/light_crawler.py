@@ -16,7 +16,7 @@ from services.url_normalizer import normalize_url
 
 
 DEFAULT_HEADERS = {
-    "User-Agent": "Mozilla/5.0 ESGDemoBot/0.1"
+    "User-Agent": "Mozilla/5.0 ESGRAGResearch/1.0"
 }
 
 

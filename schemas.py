@@ -15,8 +15,8 @@ from langgraph.graph import add_messages
 
 def ensure_date_str(v: Optional[str]) -> Optional[str]:
     """
-    统一日期格式：YYYY-MM-DD。
-    Search API 有时返回空值，允许 None。
+    Normalize date values to YYYY-MM-DD.
+    Empty values are allowed for sources that do not expose a date.
     """
     if v is None or v == "":
         return None
@@ -29,7 +29,7 @@ def ensure_date_str(v: Optional[str]) -> Optional[str]:
 
     if isinstance(v, str):
         v = v.strip()
-        # 只接受 YYYY-MM-DD，避免后面 metadata filter 混乱
+        # Keep metadata filters deterministic.
         date.fromisoformat(v)
         return v
 
@@ -67,8 +67,8 @@ def merge_dicts(left: Dict[str, Any] | None, right: Dict[str, Any] | None) -> Di
 
 class StrictModel(BaseModel):
     """
-    所有业务 Schema 的基类。
-    extra='forbid' 可以尽早发现 Agent 输出字段错误。
+    Base model for business schemas.
+    extra='forbid' catches malformed upstream outputs early.
     """
     model_config = ConfigDict(
         extra="forbid",
@@ -103,7 +103,7 @@ class SourceType(str, Enum):
 
 class CandidateOrigin(str, Enum):
     MANUAL = "manual"
-    AI_SEARCH = "ai_search"
+    WEB_SEARCH = "web_search"
 
 
 class FetchStatus(str, Enum):
@@ -165,8 +165,7 @@ class ActionOwner(str, Enum):
 
 class CompanyProfile(StrictModel):
     """
-    Company Discovery Agent 输出。
-    Demo 阶段可以写死，中国神华先不必动态发现。
+    Company profile used by search planning and peer comparison.
     """
     company: str = "中国神华"
     aliases: List[str] = Field(default_factory=list)
@@ -179,8 +178,7 @@ class CompanyProfile(StrictModel):
 
 class SearchTask(StrictModel):
     """
-    Search Planner 输出。
-    每个 Search Agent 根据该任务去调用搜索 API。
+    Search planner output consumed by section search nodes.
     """
     task_id: str
     section: SectionType
@@ -202,7 +200,7 @@ class SearchTask(StrictModel):
 
 class RawCandidate(StrictModel):
     """
-    manual CSV 或 AI/Search 的原始候选。
+    Raw candidate from manual registry or external search.
     """
     url: str
     title: str = ""
@@ -246,7 +244,7 @@ class RawCandidate(StrictModel):
 
 class ManualSourceItem(StrictModel):
     """
-    manual CSV/JSON 的人工候选源。
+    Curated source entry from CSV/JSON.
     """
     url: str
     title: str = ""
@@ -290,8 +288,8 @@ class ManualSourceItem(StrictModel):
 
 class CrawledContent(StrictModel):
     """
-    轻量 crawler 抓取结果，只用于排序和补 metadata。
-    不替代后续 Browser Worker。
+    Lightweight crawl result used for ranking and metadata enrichment.
+    Full capture is handled by Browser Worker.
     """
     url: str
     canonical_url: str
@@ -324,8 +322,8 @@ class CrawledContent(StrictModel):
 
 class EnrichedCandidate(StrictModel):
     """
-    raw candidate + crawler enrich 后的候选。
-    这是算法层打分的输入。
+    Candidate after lightweight crawl enrichment.
+    This is the rule scorer input.
     """
     candidate_id: str
 
@@ -373,7 +371,7 @@ class EnrichedCandidate(StrictModel):
 
 class ScoreResult(StrictModel):
     """
-    规则层打分结果。
+    Rule-scoring result.
     """
     candidate: EnrichedCandidate
 
@@ -401,7 +399,7 @@ class AgentRerankDecision(StrictModel):
 
 class EnrichedManualCandidate(EnrichedCandidate):
     """
-    manual rule scorer 兼容模型。
+    Compatibility model for manual rule scoring.
     """
     origin: CandidateOrigin = CandidateOrigin.MANUAL
 
@@ -412,7 +410,7 @@ class EnrichedManualCandidate(EnrichedCandidate):
 
 class RuleScoreResult(StrictModel):
     """
-    manual rule scorer 兼容输出。
+    Compatibility output for manual rule scoring.
     """
     candidate: EnrichedManualCandidate
 
@@ -428,8 +426,8 @@ class RuleScoreResult(StrictModel):
 
 class RankedUrlCandidate(StrictModel):
     """
-    Search Agent 的标准输出。
-    这是 url_candidates 层，不是最终 url_queue。
+    Standard section-search output.
+    This belongs to the candidate layer, not the final fetch queue.
     """
     candidate_id: str
     url_id: str
@@ -484,8 +482,8 @@ class RankedUrlCandidate(StrictModel):
 
 class UrlCandidate(StrictModel):
     """
-    四类 Search Agent 的统一输出。
-    注意：Agent 只输出 URL 候选，不输出网页正文。
+    Unified URL candidate emitted by section search nodes.
+    Search nodes emit metadata only; page text is captured later.
     """
     url: str
     title: str = ""
@@ -535,8 +533,7 @@ class UrlCandidate(StrictModel):
 
 class UrlQueueItem(StrictModel):
     """
-    URL Queue 的标准元素。
-    Search Agent 输出 UrlCandidate 后，经过 URL Normalizer + Deduper 变成 UrlQueueItem。
+    Fetch queue item after normalization, deduplication, and ranking.
     """
     url_id: str
 
@@ -561,7 +558,7 @@ class UrlQueueItem(StrictModel):
     query: str = ""
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
 
-    # 用于追踪 PDF 附件来源、继承 section/source_type
+    # Track PDF attachment origin and inherited section/source_type.
     inherited_from_url_id: str = ""
 
     # scoring debug fields
@@ -635,7 +632,7 @@ class UrlQueueItem(StrictModel):
 
     @model_validator(mode="after")
     def _fill_publish_date_int(self) -> "UrlQueueItem":
-        # 使用 object.__setattr__ 避免 validate_assignment=True 导致的无限递归
+        # Avoid recursive validation triggered by validate_assignment=True.
         object.__setattr__(self, 'publish_date_int', date_to_int(self.publish_date))
         return self
 
@@ -645,8 +642,8 @@ class UrlQueueItem(StrictModel):
 
 class FetchResult(StrictModel):
     """
-    Browser Worker 输出。
-    该对象只描述“抓到了什么、保存在哪里”，不做业务判断。
+    Browser Worker output.
+    Describes capture status and artifact paths; no business judgment.
     """
     url_id: str
 
@@ -719,8 +716,8 @@ class FetchResult(StrictModel):
 
 class DiscoveredPdfLink(StrictModel):
     """
-    HTML 页面中发现的 PDF 附件。
-    建议重新写入 URL Queue，而不是直接送 MinerU。
+    PDF attachment discovered from an HTML source.
+    Attachments re-enter the fetch queue before MinerU parsing.
     """
     url: str
     parent_url: str
@@ -752,8 +749,8 @@ class DiscoveredPdfLink(StrictModel):
 
 class ParsedDoc(StrictModel):
     """
-    MinerU 或 HTML Parser 的统一输出。
-    后续 Chunker 不需要关心来源是 PDF 还是 HTML。
+    Unified parser output for MinerU and HTML extraction.
+    Downstream chunking is parser-agnostic.
     """
     doc_id: str
     url_id: str
@@ -809,8 +806,8 @@ class ParsedDoc(StrictModel):
 
 class ChunkMetadata(StrictModel):
     """
-    Chroma metadata 必须尽量保持扁平。
-    不建议把 list/dict 放进 metadata。
+    Chroma metadata should remain flat.
+    Avoid list/dict values in metadata fields.
     """
     run_id: str
 
@@ -839,7 +836,7 @@ class ChunkMetadata(StrictModel):
 
     authority_score: float = Field(default=0.5, ge=0.0, le=1.0)
 
-    # 用字符串承载 tags，避免 Chroma metadata 不支持复杂对象
+    # Store tags as a string because Chroma metadata is scalar-oriented.
     tags: str = ""
 
     @field_validator("source_url")
@@ -867,7 +864,7 @@ class ChunkMetadata(StrictModel):
 
 class ChunkItem(StrictModel):
     """
-    最终写入 Chroma 的最小单元。
+    Smallest unit written to Chroma.
     """
     chunk_id: str
     doc_id: str
@@ -882,8 +879,7 @@ class ChunkItem(StrictModel):
         metadata: ChunkMetadata,
     ) -> "ChunkItem":
         """
-        工厂方法：创建 ChunkItem
-        自动生成 chunk_id（基于内容 hash）
+        Create a chunk item and derive a stable chunk_id from content.
         """
         chunk_id = sha256_text(f"{doc_id}:{metadata.chunk_index}:{text[:100]}")
         return cls(
@@ -895,13 +891,13 @@ class ChunkItem(StrictModel):
 
     def to_chroma(self) -> Dict[str, Any]:
         """
-        转换为 Chroma add() 可直接使用的格式
+        Convert to Chroma add() payload.
 
         Returns:
             {
                 "id": str,           # chunk_id
                 "document": str,     # text
-                "metadata": dict,    # 扁平化的 metadata
+                "metadata": dict,    # flattened metadata
             }
         """
         return {
@@ -917,8 +913,8 @@ class ChunkItem(StrictModel):
 
 class EvidenceItem(StrictModel):
     """
-    从 Chroma 检索出来并整理后的证据包元素。
-    LLM 影响评估和报告生成只能基于 EvidenceItem。
+    Evidence item retrieved from Chroma and normalized for downstream steps.
+    Assessment and report generation consume this schema.
     """
     evidence_id: str
 
@@ -955,8 +951,7 @@ class EvidenceItem(StrictModel):
 
 class ESGImpactAssessment(StrictModel):
     """
-    Impact Assessment Agent 的强约束输出。
-    用这个 schema 约束 LLM，不要让模型散写。
+    Structured output for ESG impact assessment.
     """
     assessment_id: str
 
@@ -981,7 +976,7 @@ class ESGImpactAssessment(StrictModel):
 
 class ReportBundle(StrictModel):
     """
-    最终导出的报告包。
+    Exported report bundle metadata.
     """
     run_id: str
     company: str
@@ -1007,11 +1002,10 @@ class ReportBundle(StrictModel):
 # LangGraph State
 # =========================
 
-class ESGDemoState(TypedDict, total=False):
+class ESGWorkflowState(TypedDict, total=False):
     """
-    LangGraph 主状态。
-    建议在 State 中存 dict，而不是 Pydantic 对象，
-    节点内部用 Model.model_validate() 做校验。
+    Shared LangGraph state.
+    Nodes exchange plain dictionaries and validate at boundaries.
     """
 
     messages: Annotated[List[BaseMessage], add_messages]
@@ -1033,7 +1027,7 @@ class ESGDemoState(TypedDict, total=False):
     # search planning
     search_tasks: List[Dict[str, Any]]
 
-    # 并行 Search Agent 结果，使用 operator.add 合并
+    # Parallel section-search outputs are merged via operator.add.
     url_candidates: Annotated[List[Dict[str, Any]], operator.add]
 
     # normalized queue

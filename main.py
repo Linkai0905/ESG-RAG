@@ -12,25 +12,25 @@ from graph import build_graph
 
 def main():
     parser = argparse.ArgumentParser(
-        description="ESG月报Demo：LangGraph + Browser Fetch + MinerU + Chroma"
+        description="ESG monthly report workflow: LangGraph + Browser Fetch + MinerU + Chroma"
     )
 
     parser.add_argument(
         "--company",
         default=DEFAULT_COMPANY,
-        help="公司名称，默认：中国神华",
+        help="Company name. Default: 中国神华",
     )
 
     parser.add_argument(
         "--anchor-date",
         default=DEFAULT_ANCHOR_DATE,
-        help="时间节点，默认：2026-06-29",
+        help="Anchor date. Default: 2026-06-29",
     )
 
     parser.add_argument(
         "--reset",
         action="store_true",
-        help="删除当前run目录后重新运行",
+        help="Remove the current run directory before execution",
     )
 
     args = parser.parse_args()
@@ -48,7 +48,7 @@ def main():
         "anchor_date": args.anchor_date,
     })
 
-    print("\n=== ESG Demo 完成 ===")
+    print("\n=== ESG workflow completed ===")
     print(f"Company: {result.get('company')}")
     print(f"Period: {result.get('period_start')} 至 {result.get('period_end')}")
     print(f"Run ID: {result.get('run_id')}")
@@ -66,7 +66,7 @@ def main():
 
     report_path = result.get("output_paths", {}).get("report")
     if report_path:
-        print(f"\n报告已生成：{report_path}")
+        print(f"\nReport: {report_path}")
 
 
 if __name__ == "__main__":

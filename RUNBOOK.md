@@ -1,10 +1,10 @@
-# ESG RAG Demo 运行指引
+# ESG RAG 运行手册
 
-本文件用于快速确认项目能从资料源完整运行到月报产物。详细架构说明见 `README.md`。
+该手册用于验证从资料源到报告产物的完整链路。架构说明见 `README.md`。
 
 ## 1. 环境准备
 
-建议使用 Python 3.11。
+推荐 Python 3.11。
 
 ```bash
 pip install -r requirements.txt
@@ -17,11 +17,11 @@ PDF 解析依赖外部命令 `mineru`：
 mineru --help
 ```
 
-如果该命令不可用，PDF 分支会失败。完整链路运行前应先确认 MinerU 可执行。
+该命令不可用时，PDF 解析分支无法完成。完整运行前先确认 MinerU 可执行。
 
 ## 2. 环境变量
 
-从模板创建本地配置：
+创建本地配置：
 
 ```bash
 cp .env.example .env
@@ -38,7 +38,7 @@ EMBEDDING_BASE_URL=
 EMBEDDING_MODEL=
 ```
 
-当前默认使用 `SEARCH_PROVIDER=manual`，资料来自 `manual_sources.csv` 和 `data/manual_sources/`。
+默认使用 `SEARCH_PROVIDER=manual`，资料来自 `manual_sources.csv` 和 `data/manual_sources/`。
 
 ## 3. 运行命令
 
@@ -48,17 +48,17 @@ EMBEDDING_MODEL=
 python main.py --company 中国神华 --anchor-date 2026-06-29 --reset
 ```
 
-运行完成后，命令行会打印 `=== ESG Demo 完成 ===`、`Metrics` 和输出路径。
+运行结束后，命令行输出运行摘要、metrics 和产物路径。
 
 ## 4. LangGraph Studio / LangSmith
 
-项目根目录包含 `langgraph.json`，Studio 入口为：
+项目根目录包含 `langgraph.json`，Studio 入口：
 
 ```text
 esg_monthly_report -> ./graph.py:studio_graph
 ```
 
-先校验配置：
+校验配置：
 
 ```bash
 langgraph validate
@@ -76,7 +76,7 @@ langgraph dev --allow-blocking --no-browser --port 2024
 http://127.0.0.1:2024
 ```
 
-如需把运行链路发送到 LangSmith Tracing，在 `.env` 中配置：
+启用 LangSmith Tracing 时，在 `.env` 中配置：
 
 ```bash
 LANGSMITH_TRACING=true
@@ -84,7 +84,7 @@ LANGSMITH_API_KEY=
 LANGSMITH_PROJECT=ESG-RAG-Monthly-Report
 ```
 
-如果 Studio 显示 `Failed to fetch`，通常表示 `langgraph dev` 没有运行，端口不是 `2024`，或浏览器无法访问本地 server。
+Studio 显示 `Failed to fetch` 时，优先检查 `langgraph dev` 是否仍在运行、端口是否为 `2024`、浏览器是否能访问本地 server。
 
 ## 5. 成功标准
 
@@ -98,7 +98,7 @@ runs/2026-06-29_中国神华/reports/metrics.json
 runs/2026-06-29_中国神华/reports/errors.json
 ```
 
-一次完整成功运行通常应满足：
+完整运行应满足：
 
 ```text
 fetch_failed_count = 0
@@ -109,7 +109,7 @@ report_fallback = false
 errors.json = []
 ```
 
-当前验证通过的样例指标保存在：
+验证样例指标：
 
 ```text
 examples/metrics_中国神华_2026-06-29.json
@@ -124,7 +124,7 @@ manual_sources.csv
 data/manual_sources/
 ```
 
-本地文件建议写入 `local_path`，使用项目相对路径，例如：
+本地文件写入 `local_path`，使用项目相对路径，例如：
 
 ```csv
 ,data/manual_sources/company/company_01.html,company,4,false,2026-06-08,html,中国神华样例,中国神华安全生产与绿色运营动态,公司动态 HTML
@@ -132,17 +132,17 @@ data/manual_sources/
 
 远程网页写入 `url`，`local_path` 留空。
 
-重要字段：
+字段说明：
 
 | 字段 | 用途 |
 |---|---|
-| `section_hint` | 控制资料进入 `policy` / `industry` / `company` / `peer` 分支 |
+| `section_hint` | 指定 `policy` / `industry` / `company` / `peer` 分支 |
 | `priority` | 手工优先级，0-5 |
-| `pinned` | 是否优先进入候选队列 |
+| `pinned` | 固定优先级 |
 | `expected_date` | 资料日期，用于周期过滤和报告判断 |
 | `source_type_hint` | `html` / `pdf` / `url` |
 | `tags` | 标题或主题 |
-| `note` | 资料用途说明 |
+| `note` | 来源备注 |
 
 ## 7. 产物说明
 
@@ -157,20 +157,20 @@ data/manual_sources/
 | `reports/evidence_rerank_decisions.json` | Reranker 评分与筛选记录 |
 | `reports/evidence.json` | 最终证据包 |
 | `reports/impact_assessments.json` | 事件影响评估 |
-| `reports/report.md` | 月报草稿 |
+| `reports/report.md` | 报告正文 |
 | `reports/metrics.json` | 运行指标 |
 | `reports/errors.json` | 错误记录 |
 
 ## 8. 常见问题
 
-`ModuleNotFoundError`：确认已安装 `requirements.txt`，并在正确 Python 环境中运行。
+`ModuleNotFoundError`：安装 `requirements.txt`，并确认当前 Python 环境正确。
 
 `playwright` 浏览器缺失：执行 `python -m playwright install chromium`。
 
-`LangSmith Studio Failed to fetch`：确认已执行 `langgraph dev --allow-blocking --no-browser --port 2024`，并在 Studio 中把 API server 设置为 `http://127.0.0.1:2024`。
+`LangSmith Studio Failed to fetch`：执行 `langgraph dev --allow-blocking --no-browser --port 2024`，并将 Studio API server 设置为 `http://127.0.0.1:2024`。
 
 PDF 解析失败：确认 `MINERU_CMD` 指向可执行的 MinerU 命令，且 `mineru --help` 可运行。
 
 LLM 或 embedding 报错：检查 `.env` 中 API key、base URL 和模型名是否可用。
 
-报告生成但内容质量不稳定：优先检查 `reports/evidence.json` 和 `reports/evidence_rerank_decisions.json`，确认进入写作阶段的证据是否足够准确。
+报告内容异常：优先检查 `reports/evidence.json` 和 `reports/evidence_rerank_decisions.json`，确认进入写作阶段的证据是否准确。

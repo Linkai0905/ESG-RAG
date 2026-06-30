@@ -1,2 +1,1 @@
-"""Agent nodes for the ESG demo graph."""
-
+"""Agent components for the ESG reporting graph."""

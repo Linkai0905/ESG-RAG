@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+.langgraph_api/
 
 # Generated runtime outputs. Keep examples/ for stable sample artifacts.
 runs/*

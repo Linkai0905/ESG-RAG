@@ -7,8 +7,8 @@ from schemas import CompanyProfile
 
 def discover_company(company: str) -> dict:
     """
-    Demo 阶段写死。
-    后续可以改成：搜索公司官网、行业分类、年报、同行企业数据库。
+    Project profile is configured locally for reproducible runs.
+    The same interface can be backed by filings, company sites, or industry datasets.
     """
     profile = CompanyProfile(
         company=company,
