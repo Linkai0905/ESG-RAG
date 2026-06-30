@@ -4,6 +4,7 @@ from __future__ import annotations
 from config import (
     build_search_queries,
     MANUAL_SOURCES_PATH,
+    MIN_ONLINE_URLS_PER_SECTION,
     PRESELECT_K,
     SECTION_QUERIES,
     TOP_K_PER_SECTION,
@@ -51,6 +52,7 @@ def run_section_search_agent(
         run_paths=run_paths,
         top_k=TOP_K_PER_SECTION,
         preselect_k=PRESELECT_K,
+        min_online_k=MIN_ONLINE_URLS_PER_SECTION,
         use_agent_rerank=USE_AGENT_RERANK,
     )
 

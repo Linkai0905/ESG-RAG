@@ -8,6 +8,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from config import PROJECT_ROOT, SEARCH_PROVIDER
 from schemas import (
     CandidateOrigin,
     CrawledContent,
@@ -31,6 +32,7 @@ def retrieve_candidates_for_section(
     run_paths: dict,
     top_k: int = 8,
     preselect_k: int = 20,
+    min_online_k: int = 0,
     use_agent_rerank: bool = False,
 ) -> list[dict]:
     section_query = " ".join(section_queries)
@@ -44,15 +46,16 @@ def retrieve_candidates_for_section(
             crawler=crawler,
         )
     )
-    enriched.extend(
-        _load_search_enriched_candidates(
-            section_id=section_id,
-            section_queries=section_queries,
-            report_period=report_period,
-            crawler=crawler,
-            top_k=max(1, min(preselect_k, 10)),
+    if SEARCH_PROVIDER != "manual":
+        enriched.extend(
+            _load_search_enriched_candidates(
+                section_id=section_id,
+                section_queries=section_queries,
+                report_period=report_period,
+                crawler=crawler,
+                top_k=max(1, min(preselect_k, 10)),
+            )
         )
-    )
 
     duplicate_urls = _duplicate_canonical_urls(enriched)
     duplicate_hashes = _duplicate_content_hashes(enriched)
@@ -92,7 +95,11 @@ def retrieve_candidates_for_section(
             scored_candidates=selected,
         )
 
-    selected = selected[:top_k]
+    selected = _select_with_online_quota(
+        scored_candidates=selected,
+        top_k=top_k,
+        min_online_k=min_online_k,
+    )
 
     ranked_candidates = []
     for raw in selected:
@@ -233,8 +240,16 @@ def _load_manual_sources(path: str | Path) -> list[ManualSourceItem]:
 
     items = []
     for row in rows:
+        url = (row.get("url") or "").strip()
+        local_path = (row.get("local_path") or "").strip()
+        if local_path:
+            file_path = Path(local_path).expanduser()
+            if not file_path.is_absolute():
+                file_path = PROJECT_ROOT / file_path
+            url = file_path.as_uri()
+
         item = ManualSourceItem(
-            url=(row.get("url") or "").strip(),
+            url=url,
             title=(row.get("title") or _title_from_tags_or_note(row)).strip(),
             snippet=(row.get("snippet") or row.get("note") or "").strip(),
             section_hint=(row.get("section_hint") or row.get("section") or "").strip(),
@@ -341,6 +356,53 @@ def _score_candidate(
 def _duplicate_canonical_urls(items: list[dict]) -> set[str]:
     counts = Counter(x.get("canonical_url", "") for x in items if x.get("canonical_url"))
     return {url for url, count in counts.items() if count > 1}
+
+
+def _select_with_online_quota(
+    scored_candidates: list[dict],
+    top_k: int,
+    min_online_k: int = 0,
+) -> list[dict]:
+    if top_k <= 0:
+        return []
+
+    selected_indexes = list(range(min(top_k, len(scored_candidates))))
+    selected_set = set(selected_indexes)
+
+    target_online = min(max(min_online_k, 0), top_k)
+    online_count = sum(
+        1 for idx in selected_indexes
+        if _is_online_candidate(scored_candidates[idx])
+    )
+
+    if online_count < target_online:
+        for idx, item in enumerate(scored_candidates):
+            if idx in selected_set or not _is_online_candidate(item):
+                continue
+            selected_indexes.append(idx)
+            selected_set.add(idx)
+            online_count += 1
+            if online_count >= target_online:
+                break
+
+    while len(selected_indexes) > top_k:
+        removable = [
+            idx for idx in selected_indexes
+            if not _is_online_candidate(scored_candidates[idx])
+        ]
+        if not removable:
+            removable = selected_indexes
+        drop_idx = max(removable)
+        selected_indexes.remove(drop_idx)
+        selected_set.remove(drop_idx)
+
+    return [scored_candidates[idx] for idx in sorted(selected_indexes)]
+
+
+def _is_online_candidate(scored_candidate: dict) -> bool:
+    candidate = scored_candidate.get("candidate", {})
+    url = candidate.get("canonical_url") or candidate.get("url") or ""
+    return str(url).startswith(("http://", "https://"))
 
 
 def _duplicate_content_hashes(items: list[dict]) -> set[str]:

@@ -1,45 +1,39 @@
+# ESG RAG Demo file manifest
+
+## Documentation
+.gitignore
 .env.example
-MANIFEST.txt
 README.md
 README_PACKAGE.txt
+RUNBOOK.md
+MANIFEST.txt
+
+## Entrypoints and configuration
+app.py
+main.py
+config.py
+graph.py
+prompts.py
+schemas.py
+requirements.txt
+manual_sources.csv
 __init__.py
+
+## Agent modules
 agents/__init__.py
 agents/agent_reranker.py
 agents/company_discovery.py
 agents/impact_assessment.py
 agents/report_generator.py
 agents/search_agents.py
-app.py
-config.py
-data/manual_sources/company/2415.05亿元！中国神华品牌价值再创新高.pdf
-data/manual_sources/company/company_01.html
-data/manual_sources/company/company_02.html
-data/manual_sources/company/中国神华东营港煤炭下水通道正式通航.pdf
-data/manual_sources/industry/industry_01.html
-data/manual_sources/industry/industry_02.html
-data/manual_sources/industry/industry_03.html
-data/manual_sources/peer/peer_01.html
-data/manual_sources/peer/peer_02.html
-data/manual_sources/policy/policy_01.html
-data/manual_sources/policy/policy_02.html
-data/manual_sources/policy/policy_03.html
-data/manual_sources/policy/全国碳市场信息网 -《农业废弃物集中处理工程项目 监测数据联网规范》等四项团体标准征集参编单位.pdf
-examples/evidence_中国神华_2026-06-29.json
-examples/generated_report_中国神华_2026-06-29.md
-examples/impact_assessments_中国神华_2026-06-29.json
-examples/metrics_中国神华_2026-06-29.json
-graph.py
-main.py
-manual_sources.csv
-prompts.py
-requirements.txt
-runs/.gitkeep
-schemas.py
+
+## Service modules
 services/__init__.py
 services/browser_worker.py
 services/chroma_store.py
 services/chunker.py
 services/embedding_client.py
+services/evidence_reranker.py
 services/exporter.py
 services/html_parser.py
 services/html_to_markdown.py
@@ -51,3 +45,43 @@ services/pdf_link_extractor.py
 services/search_api.py
 services/section_candidate_retriever.py
 services/url_normalizer.py
+
+## Manual source data
+data/manual_sources/policy/policy_01.html
+data/manual_sources/policy/policy_02.html
+data/manual_sources/policy/policy_03.html
+data/manual_sources/policy/【关于开展重点行业节能降碳改造攻坚三年行动的通知(发改环资〔2026〕698号)】-国家发展和改革委员会.pdf
+data/manual_sources/policy/全国碳市场信息网 -《农业废弃物集中处理工程项目 监测数据联网规范》等四项团体标准征集参编单位.pdf
+data/manual_sources/policy/关于更新《企业温室气体排放核算与报告指南 发电设施》和《企业温室气体排放核查技术指南 发电设施》有关技术要求的通知.pdf
+data/manual_sources/policy/国家能源局综合司关于组织推进非公共电网可再生能源发电项目绿证核发的通知-国家能源局.pdf
+data/manual_sources/policy/新能源体系建设十五五规划.pdf
+data/manual_sources/industry/industry_01.html
+data/manual_sources/industry/industry_02.html
+data/manual_sources/industry/industry_03.html
+data/manual_sources/industry/2026年5月份能源生产情况 - 国家统计局.pdf
+data/manual_sources/company/company_01.html
+data/manual_sources/company/company_02.html
+data/manual_sources/company/2415.05亿元！中国神华品牌价值再创新高.pdf
+data/manual_sources/company/中国神华东营港煤炭下水通道正式通航.pdf
+data/manual_sources/company/国能锦界公司400万吨_年CCUS示范工程项目取得规划许可.pdf
+data/manual_sources/company/宝日希勒露天矿微藻固碳项目实现规模化扩培新突破.pdf
+data/manual_sources/company/数科公司智慧煤化工关键技术与应用成果获评国际领先.pdf
+data/manual_sources/company/新疆能源“黑山优混”煤炭销量创历史新高.pdf
+data/manual_sources/company/神东煤炭首台机械夹装助力臂正式投用.pdf
+data/manual_sources/company/神东生态环境管理中心生态管理科获评“全国工人先锋号”称号.pdf
+data/manual_sources/company/雁宝能源宝日希勒露天矿宣教润心筑牢安全生产防线.pdf
+data/manual_sources/company/黄骅港务年累计煤炭下水量破亿吨.pdf
+data/manual_sources/peer/peer_01.html
+data/manual_sources/peer/peer_02.html
+data/manual_sources/peer/中国中煤能源股份有限公司2026 年 5 月份主要生产经营数据公告.pdf
+
+## Verified example outputs
+examples/generated_report_中国神华_2026-06-29.md
+examples/evidence_中国神华_2026-06-29.json
+examples/impact_assessments_中国神华_2026-06-29.json
+examples/metrics_中国神华_2026-06-29.json
+
+## Runtime directory
+runs/.gitkeep
+
+Note: raw HTML/PDF captures, MinerU intermediate files, screenshots, queue debug files, Chroma database files, and generated reports are created under runs/ during execution. Stable sample outputs are stored under examples/.

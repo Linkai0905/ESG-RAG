@@ -1,15 +1,15 @@
 .env
 .DS_Store
 __pycache__/
-*.py[cod]
+*.pyc
+*.pyo
+.pytest_cache/
 
+# Generated runtime outputs. Keep examples/ for stable sample artifacts.
 runs/*
 !runs/.gitkeep
 
-*.sqlite3
-*.sqlite3-*
-chroma/
-
-.streamlit/secrets.toml
+# Local virtual environments
 .venv/
 venv/
+env/

@@ -40,12 +40,30 @@ def fetch_batch(url_queue: list[dict], run_paths: dict) -> list[dict]:
 def fetch_one(item: UrlQueueItem, run_paths: dict) -> FetchResult:
     url = item.canonical_url
 
-    if url.lower().startswith("file://"):
+    if urlparse(url).scheme.lower() == "file":
         return _fetch_local_file(item, run_paths)
 
     if url.lower().endswith(".pdf"):
         return _download_pdf(item, run_paths)
 
+    last_error = None
+    for fetch_url in _browser_url_candidates(url):
+        try:
+            return _fetch_html_with_browser(item, run_paths, fetch_url)
+        except Exception as e:
+            last_error = e
+            if _should_try_http_fallback(fetch_url, e):
+                continue
+            raise
+
+    raise last_error or RuntimeError(f"Failed to fetch {url}")
+
+
+def _fetch_html_with_browser(
+    item: UrlQueueItem,
+    run_paths: dict,
+    fetch_url: str,
+) -> FetchResult:
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page(
@@ -54,7 +72,7 @@ def fetch_one(item: UrlQueueItem, run_paths: dict) -> FetchResult:
         )
 
         try:
-            response = page.goto(url, wait_until="domcontentloaded", timeout=45000)
+            response = page.goto(fetch_url, wait_until="domcontentloaded", timeout=45000)
             page.wait_for_timeout(2000)
 
             content_type = response.headers.get("content-type", "") if response else ""
@@ -107,6 +125,24 @@ def fetch_one(item: UrlQueueItem, run_paths: dict) -> FetchResult:
 
         finally:
             browser.close()
+
+
+def _browser_url_candidates(url: str) -> list[str]:
+    if url.lower().startswith("https://"):
+        return [url, "http://" + url[8:]]
+    return [url]
+
+
+def _should_try_http_fallback(fetch_url: str, error: Exception) -> bool:
+    if not fetch_url.lower().startswith("https://"):
+        return False
+
+    text = str(error)
+    return (
+        "ERR_SSL_VERSION_OR_CIPHER_MISMATCH" in text
+        or "SSL" in text
+        or "handshake" in text.lower()
+    )
 
 
 def _fetch_local_file(item: UrlQueueItem, run_paths: dict) -> FetchResult:

@@ -5,6 +5,7 @@ import operator
 from datetime import date, datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 from typing_extensions import Annotated, TypedDict
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
@@ -45,11 +46,8 @@ def validate_http_url(v: str) -> str:
     if not isinstance(v, str):
         raise ValueError("url must be string")
     v = v.strip()
-    if not (
-        v.startswith("http://")
-        or v.startswith("https://")
-        or v.startswith("file://")
-    ):
+    parsed = urlparse(v)
+    if parsed.scheme not in {"http", "https", "file"}:
         raise ValueError(f"Only http/https/file URL is supported: {v}")
     return v
 

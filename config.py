@@ -8,14 +8,14 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
 
-load_dotenv()
+PROJECT_ROOT = Path(__file__).resolve().parent
+load_dotenv(PROJECT_ROOT / ".env", override=True)
 
 
 # =========================
 # Basic Settings
 # =========================
 
-PROJECT_ROOT = Path(__file__).resolve().parent
 RUNS_DIR = PROJECT_ROOT / "runs"
 
 DEFAULT_COMPANY = "中国神华"
@@ -155,6 +155,19 @@ SECTION_QUERIES = {
 
 PRESELECT_K = int(os.getenv("PRESELECT_K", "20"))
 TOP_K_PER_SECTION = int(os.getenv("TOP_K_PER_SECTION", "8"))
+MIN_ONLINE_URLS_PER_SECTION = int(os.getenv("MIN_ONLINE_URLS_PER_SECTION", "0"))
+EVIDENCE_TOP_K_PER_SECTION = int(os.getenv("EVIDENCE_TOP_K_PER_SECTION", "8"))
+RERANK_ENABLED = os.getenv("RERANK_ENABLED", "true").lower() == "true"
+RERANK_MODEL = os.getenv("RERANK_MODEL", LLM_MODEL)
+RERANK_PRESELECT_K = int(os.getenv("RERANK_PRESELECT_K", "20"))
+RERANK_TOP_K = int(os.getenv("RERANK_TOP_K", "5"))
+RERANK_MIN_SCORE = float(os.getenv("RERANK_MIN_SCORE", "3"))
+RERANK_MAX_TEXT_CHARS = int(os.getenv("RERANK_MAX_TEXT_CHARS", "900"))
+RERANK_SECTIONS = tuple(
+    x.strip()
+    for x in os.getenv("RERANK_SECTIONS", "company,peer").split(",")
+    if x.strip()
+)
 
 SECTION_RETRIEVAL_QUERIES = {
     "policy": "ESG政策 评级 标准 披露 气候 碳市场 上市公司",

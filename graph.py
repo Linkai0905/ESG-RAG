@@ -10,6 +10,12 @@ from langgraph.graph import StateGraph, START, END
 from config import (
     DEFAULT_COMPANY,
     DEFAULT_ANCHOR_DATE,
+    EVIDENCE_TOP_K_PER_SECTION,
+    RERANK_ENABLED,
+    RERANK_MIN_SCORE,
+    RERANK_PRESELECT_K,
+    RERANK_SECTIONS,
+    RERANK_TOP_K,
     calc_period,
     make_run_id,
     build_run_dirs,
@@ -37,6 +43,7 @@ from services.mineru_parser import parse_pdf_with_mineru
 from services.pdf_link_extractor import extract_pdf_candidates
 from services.chunker import parsed_docs_to_chunks
 from services.chroma_store import add_chunks, retrieve_evidence
+from services.evidence_reranker import rerank_evidence_pack
 from services.exporter import export_all, save_json
 
 
@@ -67,6 +74,21 @@ def _save_run_json(state: ESGDemoState, relative_path: str, data: Any) -> None:
     run_paths = _run_paths(state)
     path = run_paths["base"] / relative_path
     save_json(path, data)
+
+
+def _take_top_k_by_section(items: list[dict], top_k: int) -> list[dict]:
+    counts: dict[str, int] = {}
+    output = []
+
+    for item in items:
+        section = item.get("section", "unknown")
+        count = counts.get(section, 0)
+        if count >= top_k:
+            continue
+        output.append(item)
+        counts[section] = count + 1
+
+    return output
 
 
 def _find_search_task(state: ESGDemoState, section: str) -> dict | None:
@@ -415,14 +437,60 @@ def index_chroma_node(state: ESGDemoState) -> dict:
 
 
 def retrieve_evidence_node(state: ESGDemoState) -> dict:
-    evidence_pack = retrieve_evidence(
+    retrieve_top_k = (
+        max(RERANK_PRESELECT_K, EVIDENCE_TOP_K_PER_SECTION)
+        if RERANK_ENABLED
+        else EVIDENCE_TOP_K_PER_SECTION
+    )
+    raw_evidence_pack = retrieve_evidence(
         chroma_path=state["chroma_path"],
         collection_name=state["collection_name"],
         period_start=state["period_start"],
         period_end=state["period_end"],
         section_queries=SECTION_RETRIEVAL_QUERIES,
-        top_k=8,
+        top_k=retrieve_top_k,
     )
+
+    evidence_pack = raw_evidence_pack
+    rerank_decisions = []
+    rerank_fallback = False
+
+    if RERANK_ENABLED:
+        _save_run_json(
+            state,
+            "reports/evidence_raw.json",
+            raw_evidence_pack,
+        )
+
+        try:
+            evidence_pack, rerank_decisions = rerank_evidence_pack(
+                raw_evidence_pack,
+                company=state["company"],
+                period_start=state["period_start"],
+                period_end=state["period_end"],
+                section_queries=SECTION_RETRIEVAL_QUERIES,
+                rerank_sections=set(RERANK_SECTIONS),
+                top_k=RERANK_TOP_K,
+                min_score=RERANK_MIN_SCORE,
+                default_top_k=EVIDENCE_TOP_K_PER_SECTION,
+            )
+        except Exception as e:
+            rerank_fallback = True
+            evidence_pack = _take_top_k_by_section(
+                raw_evidence_pack,
+                EVIDENCE_TOP_K_PER_SECTION,
+            )
+            rerank_decisions = [{
+                "fallback": True,
+                "error": str(e),
+                "reason": "evidence reranker failed; raw embedding evidence used",
+            }]
+
+        _save_run_json(
+            state,
+            "reports/evidence_rerank_decisions.json",
+            rerank_decisions,
+        )
 
     _save_run_json(
         state,
@@ -435,11 +503,28 @@ def retrieve_evidence_node(state: ESGDemoState) -> dict:
         section = item.get("section", "unknown")
         section_counts[section] = section_counts.get(section, 0) + 1
 
+    raw_section_counts = {}
+    for item in raw_evidence_pack:
+        section = item.get("section", "unknown")
+        raw_section_counts[section] = raw_section_counts.get(section, 0) + 1
+
+    rerank_selected_counts = {}
+    for item in evidence_pack:
+        section = item.get("section", "unknown")
+        if section in set(RERANK_SECTIONS):
+            rerank_selected_counts[section] = rerank_selected_counts.get(section, 0) + 1
+
     return {
         "evidence_pack": evidence_pack,
         "metrics": _merge_metrics(state, {
             "evidence_count": len(evidence_pack),
             "evidence_section_counts": section_counts,
+            "evidence_raw_count": len(raw_evidence_pack),
+            "evidence_raw_section_counts": raw_section_counts,
+            "evidence_rerank_enabled": RERANK_ENABLED,
+            "evidence_rerank_sections": list(RERANK_SECTIONS),
+            "evidence_rerank_selected_counts": rerank_selected_counts,
+            "evidence_rerank_fallback": rerank_fallback,
         }),
     }
 
@@ -605,6 +690,7 @@ def generate_report_node(state: ESGDemoState) -> dict:
             period_end=state["period_end"],
             evidence_pack=state.get("evidence_pack", []),
             impact_assessments=state.get("impact_assessments", []),
+            parsed_docs=state.get("parsed_docs", []),
         )
     except Exception as e:
         report_markdown = _fallback_report(state)

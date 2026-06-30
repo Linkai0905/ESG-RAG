@@ -49,6 +49,7 @@ def chat_text(
     prompt: str,
     temperature: float = 0.2,
     system_prompt: str | None = None,
+    model: str | None = None,
 ) -> str:
     client = get_client()
 
@@ -59,7 +60,7 @@ def chat_text(
     messages.append({"role": "user", "content": prompt})
 
     kwargs = {
-        "model": LLM_MODEL,
+        "model": model or LLM_MODEL,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": LLM_MAX_TOKENS,
@@ -83,6 +84,7 @@ def chat_json(
     prompt: str,
     temperature: float = 0.1,
     system_prompt: str | None = None,
+    model: str | None = None,
 ) -> Any:
     client = get_client()
 
@@ -102,7 +104,7 @@ def chat_json(
     ]
 
     kwargs = {
-        "model": LLM_MODEL,
+        "model": model or LLM_MODEL,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": LLM_MAX_TOKENS,

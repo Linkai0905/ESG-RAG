@@ -1,61 +1,78 @@
 {
   "period_start": "2026-05-29",
   "period_end": "2026-06-29",
-  "collection_name": "esg__20260529_20260629_BAAI_bge-m3_1024",
+  "collection_name": "esg__20260529_20260629_BAAI_bge-m3_auto",
   "company": "中国神华",
   "peer_count": 6,
   "search_task_count": 4,
-  "url_candidate_count": 17,
-  "unique_url_count": 17,
-  "url_queue_count": 17,
+  "url_candidate_count": 35,
+  "unique_url_count": 35,
+  "url_queue_count": 35,
   "duplicate_url_count": 0,
-  "pinned_count": 3,
+  "pinned_count": 6,
   "section_counts_in_candidates": {
-    "company": 8,
-    "industry": 3,
-    "peer": 2,
-    "policy": 4
+    "company": 20,
+    "industry": 4,
+    "peer": 3,
+    "policy": 8
   },
   "section_counts_in_queue": {
-    "company": 8,
-    "policy": 4,
-    "industry": 3,
-    "peer": 2
+    "company": 20,
+    "policy": 8,
+    "peer": 3,
+    "industry": 4
   },
   "merge_urls": {
-    "url_candidate_count": 17,
-    "unique_url_count": 17,
-    "url_queue_count": 17,
+    "url_candidate_count": 35,
+    "unique_url_count": 35,
+    "url_queue_count": 35,
     "duplicate_url_count": 0,
-    "pinned_count": 3,
+    "pinned_count": 6,
     "section_counts_in_candidates": {
-      "company": 8,
-      "industry": 3,
-      "peer": 2,
-      "policy": 4
+      "company": 20,
+      "industry": 4,
+      "peer": 3,
+      "policy": 8
     },
     "section_counts_in_queue": {
-      "company": 8,
-      "policy": 4,
-      "industry": 3,
-      "peer": 2
+      "company": 20,
+      "policy": 8,
+      "peer": 3,
+      "industry": 4
     }
   },
-  "fetch_success_count": 16,
-  "fetch_failed_count": 1,
-  "parsed_doc_count": 16,
-  "parsed_success_count": 16,
+  "fetch_success_count": 35,
+  "fetch_failed_count": 0,
+  "parsed_doc_count": 35,
+  "parsed_success_count": 35,
   "discovered_pdf_count": 0,
-  "chunk_count": 67,
-  "evidence_count": 30,
+  "chunk_count": 299,
+  "evidence_count": 34,
   "evidence_section_counts": {
-    "policy": 8,
-    "industry": 8,
-    "company": 8,
-    "peer": 6
+    "policy": 12,
+    "industry": 12,
+    "company": 5,
+    "peer": 5
   },
-  "impact_assessment_count": 7,
+  "evidence_raw_count": 80,
+  "evidence_raw_section_counts": {
+    "policy": 20,
+    "industry": 20,
+    "company": 20,
+    "peer": 20
+  },
+  "evidence_rerank_enabled": true,
+  "evidence_rerank_sections": [
+    "company",
+    "peer"
+  ],
+  "evidence_rerank_selected_counts": {
+    "company": 5,
+    "peer": 5
+  },
+  "evidence_rerank_fallback": false,
+  "impact_assessment_count": 5,
   "impact_assessment_fallback": false,
   "report_fallback": false,
-  "report_length": 6605
+  "report_length": 5080
 }

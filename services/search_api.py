@@ -6,7 +6,7 @@ import requests
 from pathlib import Path
 from typing import Any, Dict, List
 
-from config import SEARCH_PROVIDER, SEARCH_API_KEY
+from config import PROJECT_ROOT, SEARCH_PROVIDER, SEARCH_API_KEY
 
 
 def search_web(
@@ -69,11 +69,15 @@ def _search_manual(
         reader = csv.DictReader(f)
 
         for row in reader:
-            row_section = (row.get("section") or "").strip()
+            row_section = (row.get("section") or row.get("section_hint") or "").strip()
             if section and row_section != section:
                 continue
 
-            source_type = (row.get("source_type") or "url").strip().lower()
+            source_type = (
+                row.get("source_type")
+                or row.get("source_type_hint")
+                or "url"
+            ).strip().lower()
             url = (row.get("url") or "").strip()
             local_path = (row.get("local_path") or "").strip()
 
@@ -82,7 +86,7 @@ def _search_manual(
             if is_local:
                 file_path = Path(local_path).expanduser()
                 if not file_path.is_absolute():
-                    file_path = Path.cwd() / file_path
+                    file_path = PROJECT_ROOT / file_path
 
                 if not file_path.exists():
                     continue
@@ -107,10 +111,10 @@ def _search_manual(
                 "is_local": is_local,
                 "local_path": local_path,
                 "url": url,
-                "title": row.get("title", ""),
-                "snippet": row.get("snippet", ""),
-                "source_name": row.get("source_name", ""),
-                "publish_date": row.get("publish_date") or None,
+                "title": row.get("title") or row.get("tags") or "",
+                "snippet": row.get("snippet") or row.get("note") or "",
+                "source_name": row.get("source_name") or row.get("source_name_hint") or "",
+                "publish_date": row.get("publish_date") or row.get("expected_date") or None,
                 "query": query,
             })
 
